@@ -1,30 +1,22 @@
-from dataclasses import dataclass
+import threading
 from typing import Any, Dict, Optional
 
-try:
-    from .common import (
-        DEFAULT_MD_HOST,
-        DEFAULT_MD_PORT,
-        DEFAULT_TRACE_DIR,
-        JsonLineClient,
-        TraceWriter,
-        config_value,
-        load_config,
-        now_ns,
-        resolve_path,
-    )
-except ImportError:
-    from common import (  # type: ignore
-        DEFAULT_MD_HOST,
-        DEFAULT_MD_PORT,
-        DEFAULT_TRACE_DIR,
-        JsonLineClient,
-        TraceWriter,
-        config_value,
-        load_config,
-        now_ns,
-        resolve_path,
-    )
+import pywingchun
+import pyyjj
+import kungfu.wingchun.msg as wc_msg
+from kungfu.yijinjing.log import create_logger
+
+from .common import (
+    DEFAULT_MD_HOST,
+    DEFAULT_MD_PORT,
+    DEFAULT_TRACE_DIR,
+    JsonLineClient,
+    TraceWriter,
+    config_value,
+    load_config,
+    now_ns,
+    resolve_path,
+)
 
 
 MD_TRACE_FIELDS = [
@@ -37,96 +29,106 @@ MD_TRACE_FIELDS = [
 ]
 
 
-@dataclass
-class MockQuote:
-    source: str
-    symbol: str
-    bid_price: float
-    bid_qty: float
-    ask_price: float
-    ask_qty: float
-    event_id: int
-    t_exchange_emit_ns: int
-    t_msg_received_ns: int
-
-
-class MockMd:
-    def __init__(self, low_latency: bool = False, locator: Any = None, account_config: Any = None):
-        self.low_latency = low_latency
-        self.locator = locator
-        self.config = load_config(account_config)
+class MockMd(pywingchun.MarketData):
+    def __init__(self, low_latency: bool, locator: Any, config_json: str):
+        pywingchun.MarketData.__init__(self, low_latency, locator, "mock")
+        self.config = load_config(config_json)
         self.host = config_value(self.config, "md_host", DEFAULT_MD_HOST)
         self.port = int(config_value(self.config, "md_port", DEFAULT_MD_PORT))
         self.source_id = config_value(self.config, "source_id", "mock")
+        self.exchange_id = config_value(self.config, "exchange", "mock")
+        self.instrument_type = getattr(
+            pywingchun.constants.InstrumentType,
+            config_value(self.config, "instrument_type", "Spot"),
+            pywingchun.constants.InstrumentType.Spot,
+        )
         self.trace = TraceWriter(
             resolve_path(config_value(self.config, "md_trace_path", None), DEFAULT_TRACE_DIR / "mock_md.csv"),
             MD_TRACE_FIELDS,
         )
+        self.logger = create_logger(
+            "mock_md",
+            config_value(self.config, "log_level", "info"),
+            pyyjj.location(pyyjj.mode.LIVE, pyyjj.category.MD, "mock", "mock", locator),
+        )
         self.client: Optional[JsonLineClient] = None
-        self.last_quote: Optional[MockQuote] = None
+        self.thread: Optional[threading.Thread] = None
+        self.running = False
+        self.subscribed_symbols = set()
 
-    def run(self) -> None:
-        self.client = JsonLineClient(self.host, self.port).connect()
+    def on_start(self):
+        self.running = True
+        self.thread = threading.Thread(target=self._read_replay_stream, name="mock-md-replay", daemon=True)
+        self.thread.start()
+        pywingchun.MarketData.on_start(self)
+
+    def subscribe(self, instruments):
+        for inst in instruments:
+            self.subscribed_symbols.add(inst.symbol)
+        return True
+
+    def unsubscribe(self, instruments):
+        for inst in instruments:
+            self.subscribed_symbols.discard(inst.symbol)
+        return True
+
+    def _read_replay_stream(self):
         try:
+            self.client = JsonLineClient(self.host, self.port).connect()
             for msg in self.client.iter_json():
+                if not self.running:
+                    break
                 if msg.get("type") != "bookTicker":
                     continue
-                quote = self._quote_from_msg(msg)
-                t_strategy_visible_ns = now_ns()
-                self.last_quote = quote
-                self._publish_quote(quote)
-                self.trace.write(
-                    {
-                        "event_id": quote.event_id,
-                        "symbol": quote.symbol,
-                        "t_exchange_emit_ns": quote.t_exchange_emit_ns,
-                        "t_msg_received_ns": quote.t_msg_received_ns,
-                        "t_strategy_visible_ns": t_strategy_visible_ns,
-                        "md_ingest_ns": t_strategy_visible_ns - quote.t_msg_received_ns,
-                    }
-                )
+                symbol = str(msg["symbol"])
+                if self.subscribed_symbols and symbol not in self.subscribed_symbols:
+                    continue
+                self._publish_book_ticker(msg)
+        except Exception as exc:
+            self.logger.error(f"mock md replay stream stopped: {exc}")
         finally:
             if self.client is not None:
                 self.client.close()
+                self.client = None
             self.trace.close()
 
-    def _quote_from_msg(self, msg: Dict[str, Any]) -> MockQuote:
-        return MockQuote(
-            source=self.source_id,
-            symbol=str(msg["symbol"]),
-            bid_price=float(msg["bid_px"]),
-            bid_qty=float(msg["bid_qty"]),
-            ask_price=float(msg["ask_px"]),
-            ask_qty=float(msg["ask_qty"]),
-            event_id=int(msg["event_id"]),
-            t_exchange_emit_ns=int(msg["t_exchange_emit_ns"]),
-            t_msg_received_ns=now_ns(),
+    def _publish_book_ticker(self, msg: Dict[str, Any]):
+        t_msg_received_ns = now_ns()
+        depth = pywingchun.Depth()
+        depth.source_id = self.source_id
+        depth.data_time = t_msg_received_ns
+        depth.symbol = str(msg["symbol"])
+        depth.exchange_id = self.exchange_id
+        depth.instrument_type = self.instrument_type
+        depth.bid_price = [float(msg["bid_px"])]
+        depth.bid_volume = [float(msg["bid_qty"])]
+        depth.ask_price = [float(msg["ask_px"])]
+        depth.ask_volume = [float(msg["ask_qty"])]
+
+        # Python strategy code can read these attrs when the binding allows it;
+        # native Depth consumers still use data_time and book fields above.
+        self._try_setattr(depth, "event_id", int(msg["event_id"]))
+        self._try_setattr(depth, "t_exchange_emit_ns", int(msg["t_exchange_emit_ns"]))
+        self._try_setattr(depth, "t_msg_received_ns", t_msg_received_ns)
+
+        t_strategy_visible_ns = now_ns()
+        self.get_writer(0).write_data(0, wc_msg.Depth, depth)
+        self.trace.write(
+            {
+                "event_id": int(msg["event_id"]),
+                "symbol": depth.symbol,
+                "t_exchange_emit_ns": int(msg["t_exchange_emit_ns"]),
+                "t_msg_received_ns": t_msg_received_ns,
+                "t_strategy_visible_ns": t_strategy_visible_ns,
+                "md_ingest_ns": t_strategy_visible_ns - t_msg_received_ns,
+            }
         )
 
-    def _publish_quote(self, quote: MockQuote) -> None:
-        if hasattr(self, "write_quote"):
-            self.write_quote(quote)  # type: ignore[attr-defined]
-            return
-
-        writer_getter = getattr(self, "get_writer", None)
-        if writer_getter is None:
-            return
-
+    def _try_setattr(self, obj: Any, name: str, value: Any) -> None:
         try:
-            import pywingchun
-            from kungfu.wingchun import msg as wc_msg
-        except ImportError:
-            return
+            setattr(obj, name, value)
+        except Exception:
+            pass
 
-        writer = writer_getter(0)
-        depth = writer.open_data(0, wc_msg.Depth)
-        depth.source_id = self.source_id
-        depth.data_time = quote.t_msg_received_ns
-        depth.symbol = quote.symbol
-        depth.exchange_id = "mock"
-        depth.instrument_type = getattr(pywingchun.constants.InstrumentType, "Spot", 0)
-        depth.bid_price[0] = quote.bid_price
-        depth.bid_volume[0] = quote.bid_qty
-        depth.ask_price[0] = quote.ask_price
-        depth.ask_volume[0] = quote.ask_qty
-        writer.close_data()
+
+MarketDataMock = MockMd
