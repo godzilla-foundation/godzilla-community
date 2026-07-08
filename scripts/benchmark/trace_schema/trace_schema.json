@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "clock": "monotonic_ns",
+  "headline_metric": "total_tick_to_trade_ns",
+  "raw_files": {
+    "md": "mock_md.csv",
+    "strategy": "simple_benchmark_strategy.csv",
+    "td": "mock_td.csv",
+    "exchange_orders": "mock_exchange_orders.csv"
+  },
+  "joined_fields": [
+    "run_id",
+    "system",
+    "event_id",
+    "client_order_id",
+    "symbol",
+    "side",
+    "t_exchange_emit_ns",
+    "t_msg_received_ns",
+    "t_strategy_visible_ns",
+    "t_strategy_triggered_ns",
+    "t_order_constructed_ns",
+    "t_order_socket_write_ns",
+    "t_order_received_ns",
+    "t_ack_ns",
+    "md_ingest_ns",
+    "decision_ns",
+    "order_egress_ns",
+    "total_tick_to_trade_ns"
+  ]
+}
