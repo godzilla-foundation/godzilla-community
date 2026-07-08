@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "benchmark_master",
+      "cwd": "./",
+      "script": "../../core/python/dev_run.py",
+      "exec_interpreter": "python3",
+      "args": "-l info master",
+      "watch": "true",
+      "env": {
+        "CLEAR_JOURNAL": "1"
+      }
+    }
+  ]
+}

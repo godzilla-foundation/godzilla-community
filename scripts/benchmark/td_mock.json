@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "name": "benchmark_td_mock:benchmark",
+      "cwd": "./",
+      "script": "../../core/python/dev_run.py",
+      "exec_interpreter": "python3",
+      "args": "-l trace td -s mock -a benchmark",
+      "watch": "true"
+    }
+  ]
+}

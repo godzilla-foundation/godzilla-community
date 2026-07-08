@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "benchmark_md_mock",
+      "cwd": "./",
+      "script": "../../core/python/dev_run.py",
+      "exec_interpreter": "python3",
+      "args": "-l trace md -s mock",
+      "watch": "true",
+      "env": {
+        "CLEAR_JOURNAL": "1"
+      }
+    }
+  ]
+}

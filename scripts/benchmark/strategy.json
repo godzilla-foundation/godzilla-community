@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "name": "benchmark_strategy",
+      "cwd": "./",
+      "script": "../../core/python/dev_run.py",
+      "exec_interpreter": "python3",
+      "args": "-l trace strategy -g benchmark -n simple_benchmark -p ../../strategies/benchmark/simple_benchmark_strategy.py -c ../../strategies/benchmark/conf.json",
+      "watch": "true"
+    }
+  ]
+}
