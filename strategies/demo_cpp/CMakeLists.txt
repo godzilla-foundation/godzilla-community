@@ -1,0 +1,57 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
+PROJECT(demo_cpp)
+
+############################################################
+SET(CMAKE_CXX_STANDARD 17)
+
+if(UNIX)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+    SET(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+
+    SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+    SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+    SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+if(UNIX AND NOT APPLE)
+    SET(KFC_INSTALL_RPATH
+            "$ORIGIN"
+            "$ORIGIN/../../"
+            )
+    SET(CMAKE_INSTALL_RPATH "${KFC_INSTALL_RPATH}")
+endif()
+if(WIN32)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /w /permissive-")
+    SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /IGNORE:4199")
+    SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /IGNORE:4199")
+    ADD_COMPILE_DEFINITIONS(HAVE_SNPRINTF)
+endif()
+
+############################################################
+
+if(KF_SOURCE_HOME)
+    MESSAGE("KF_SOURCE_HOME set to ${KF_SOURCE_HOME}")
+else(KF_SOURCE_HOME)
+    SET(KFC_DEV_DIR "../../core")
+    GET_FILENAME_COMPONENT(KF_SOURCE_HOME ${KFC_DEV_DIR} ABSOLUTE)
+    MESSAGE("KF_SOURCE_HOME set to ${KF_SOURCE_HOME}")
+endif (KF_SOURCE_HOME)
+
+INCLUDE_DIRECTORIES("${KF_SOURCE_HOME}/build/dist/include")
+INCLUDE_DIRECTORIES("${KF_SOURCE_HOME}/deps/spdlog-1.3.1/include")
+INCLUDE_DIRECTORIES("${KF_SOURCE_HOME}/deps/fmt-5.3.0/include")
+INCLUDE_DIRECTORIES("${KF_SOURCE_HOME}/deps/rxcpp-4.1.0/include")
+INCLUDE_DIRECTORIES("${KF_SOURCE_HOME}/deps/json-3.5.0/single_include")
+message(${KF_SOURCE_HOME}/core/cpp/wingchun/include)
+LINK_DIRECTORIES("${KF_SOURCE_HOME}/build")
+
+############################################################
+
+# Use pybind11
+ADD_SUBDIRECTORY(../../core/deps/pybind11-2.10.4 "${PROJECT_BINARY_DIR}/pybind11")
+
+############################################################
+
+AUX_SOURCE_DIRECTORY(src SOURCE_FILES)
+PYBIND11_ADD_MODULE(${PROJECT_NAME} SHARED ${SOURCE_FILES})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE yijinjing wingchun)
