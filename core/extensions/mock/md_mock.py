@@ -140,8 +140,6 @@ class MockMd(pywingchun.MarketData):
                 self.logger.error("mock md direct publish failed:\n" + traceback.format_exc())
             count += 1
 
-    def _publish_next_direct(self):
-        return
 
     def on_stop(self):
         self.running = False
@@ -204,7 +202,7 @@ class MockMd(pywingchun.MarketData):
         t_msg_received_ns = int(msg.get("_t_msg_received_ns", now_ns()))
         depth = pywingchun.Depth()
         depth.source_id = self.source_id
-        depth.data_time = t_msg_received_ns
+        depth.data_time = int(msg["event_id"]) if self.direct_mode else t_msg_received_ns
         depth.symbol = str(msg["symbol"])
         depth.exchange_id = self.exchange_id
         depth.instrument_type = self.instrument_type

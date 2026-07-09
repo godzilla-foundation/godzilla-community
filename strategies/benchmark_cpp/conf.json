@@ -1,0 +1,16 @@
+{
+  "run_id": "local",
+  "md_source": "mock",
+  "td_source": "mock",
+  "account": "benchmark",
+  "symbol": "BTC-USDT",
+  "exchange": "mock",
+  "instrument_type": "Spot",
+  "order_type": "Limit",
+  "qty": 0.001,
+  "tick_size": 0.5,
+  "side_mode": "alternate",
+  "max_orders": 1000,
+  "dedupe_event_id": true,
+  "strategy_trace_path": "traces/raw/simple_benchmark_strategy.csv"
+}

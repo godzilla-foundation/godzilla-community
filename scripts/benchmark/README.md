@@ -122,6 +122,17 @@ python3 analysis/summarize_latency.py --raw-dir traces/raw --out-dir analysis/ou
 
 `start-shm` defaults `GZ_BENCH_TRACE_MODE=buffered`: trace rows are queued in the hot path and flushed by a background writer, so `analysis/summarize_latency.py` can still read CSV output. Use `GZ_BENCH_TRACE_MODE=csv` for synchronous debug traces, or `GZ_BENCH_TRACE_MODE=journal`/`off` to disable benchmark CSV traces entirely.
 
+
+### Native C++ benchmark
+
+To run the native strategy variant, build `strategies/benchmark_cpp` and launch:
+
+```bash
+bash run.sh start-cpp
+```
+
+`start-cpp` uses the same benchmark wiring as `start-shm`, but loads the native pybind strategy module from `strategies/benchmark_cpp/build`.
+
 For journal-only shm latency analysis, start with `GZ_BENCH_TRACE_MODE=journal` and summarize from Kungfu journals:
 
 ```bash

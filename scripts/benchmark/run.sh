@@ -82,10 +82,44 @@ start_shm() {
     echo "pm2 ls to show the services"
 }
 
+start_cpp() {
+    prepare
+
+    # start master
+    pm2 start master.json
+    echo "starting master..."
+    sleep 5
+
+    # start ledger
+    pm2 start ledger.json
+    echo "starting ledger..."
+    sleep 5
+
+    TRACE_MODE=${GZ_BENCH_TRACE_MODE:-buffered}
+
+    # start mock md in direct shm mode
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE GZ_MOCK_MD_DIRECT=1 GZ_MOCK_MD_INTERVAL_NS=${GZ_MOCK_MD_INTERVAL_NS:-1000000} pm2 start md_mock.json --update-env
+    echo "starting mock md direct shm mode..."
+    sleep 5
+
+    # start mock td without exchange socket
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE GZ_MOCK_TD_NO_SOCKET=1 pm2 start td_mock.json --update-env
+    echo "starting mock td no-socket mode..."
+    sleep 5
+
+    # start native benchmark strategy
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE pm2 start strategy_cpp.json --update-env
+    echo "starting native benchmark strategy..."
+    sleep 5
+
+    echo "pm2 ls to show the services"
+}
+
 stop() {
     cd $WORK_HOME
 
     pm2 delete benchmark_strategy 2>/dev/null
+    pm2 delete benchmark_strategy_cpp 2>/dev/null
     pm2 delete benchmark_td_mock:benchmark 2>/dev/null
     pm2 delete benchmark_md_mock 2>/dev/null
     pm2 delete benchmark_ledger 2>/dev/null
@@ -100,13 +134,15 @@ stop() {
 
 
 if [ $# -lt 1 ]; then
-    echo "please indicate action [start/start-shm/stop]"
+    echo "please indicate action [start/start-shm/start-cpp/stop]"
     exit 1
 fi
 if [ "$1" = "start" ]; then
     start
 elif [ "$1" = "start-shm" ]; then
     start_shm
+elif [ "$1" = "start-cpp" ]; then
+    start_cpp
 elif [ "$1" = "stop" ]; then
     stop
 else
