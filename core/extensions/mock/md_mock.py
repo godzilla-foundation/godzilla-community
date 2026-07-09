@@ -1,7 +1,9 @@
+import csv
 import queue
 import threading
+import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import pywingchun
 import pyyjj
@@ -9,12 +11,16 @@ import kungfu.wingchun.msg as wc_msg
 from kungfu.yijinjing.log import create_logger
 
 from .common import (
+    DEFAULT_DATASET,
     DEFAULT_MD_HOST,
     DEFAULT_MD_PORT,
     DEFAULT_TRACE_DIR,
     JsonLineClient,
-    TraceWriter,
+    make_trace_writer,
     config_value,
+    env_bool,
+    env_int,
+    env_value,
     load_config,
     now_ns,
     resolve_path,
@@ -35,6 +41,7 @@ class MockMd(pywingchun.MarketData):
     def __init__(self, low_latency: bool, locator: Any, config_json: str):
         pywingchun.MarketData.__init__(self, low_latency, locator, "mock")
         self.config = load_config(config_json)
+        self.direct_mode = env_bool("GZ_MOCK_MD_DIRECT", bool(config_value(self.config, "direct_mode", False)))
         self.host = config_value(self.config, "md_host", DEFAULT_MD_HOST)
         self.port = int(config_value(self.config, "md_port", DEFAULT_MD_PORT))
         self.source_id = config_value(self.config, "source_id", "mock")
@@ -44,11 +51,19 @@ class MockMd(pywingchun.MarketData):
             config_value(self.config, "instrument_type", "Spot"),
             pywingchun.constants.InstrumentType.Spot,
         )
-        self.publish_interval_ns = int(config_value(self.config, "publish_interval_ns", 1_000_000))
+        self.publish_interval_ns = env_int(
+            "GZ_MOCK_MD_INTERVAL_NS",
+            int(config_value(self.config, "publish_interval_ns", 1_000_000)),
+        )
         self.max_publish_batch = int(config_value(self.config, "max_publish_batch", 1024))
-        self.trace = TraceWriter(
+        self.dataset_path = resolve_path(
+            env_value("GZ_MOCK_MD_DATASET", config_value(self.config, "dataset", None)),
+            DEFAULT_DATASET,
+        )
+        self.trace = make_trace_writer(
             resolve_path(config_value(self.config, "md_trace_path", None), DEFAULT_TRACE_DIR / "mock_md.csv"),
             MD_TRACE_FIELDS,
+            self.config,
         )
         self.logger = create_logger(
             "mock_md",
@@ -63,11 +78,21 @@ class MockMd(pywingchun.MarketData):
         self.messages: queue.SimpleQueue[Dict[str, Any]] = queue.SimpleQueue()
         self.received_count = 0
         self.published_count = 0
+        self.direct_rows: List[Dict[str, str]] = []
+        self.direct_index = 0
+        self.direct_event_id = 0
 
     def on_start(self):
         self.running = True
-        self.add_time_interval(self.publish_interval_ns, lambda event: self._drain_replay_messages())
-        self._ensure_replay_thread()
+        if self.direct_mode:
+            self.direct_rows = self._load_direct_rows()
+            self.logger.info(
+                f"mock md direct shm mode dataset={self.dataset_path} interval_ns={self.publish_interval_ns}"
+            )
+            self.add_time_interval(self.publish_interval_ns, lambda event: self._publish_next_direct())
+        else:
+            self.add_time_interval(self.publish_interval_ns, lambda event: self._drain_replay_messages())
+            self._ensure_replay_thread()
         pywingchun.MarketData.on_start(self)
 
     def subscribe(self, instruments):
@@ -79,6 +104,56 @@ class MockMd(pywingchun.MarketData):
         for inst in instruments:
             self.subscribed_symbols.discard(inst.symbol)
         return True
+
+    def _load_direct_rows(self) -> List[Dict[str, str]]:
+        with self.dataset_path.open(newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        if not rows:
+            raise RuntimeError(f"empty mock md dataset: {self.dataset_path}")
+        return rows
+
+    def _publish_next_direct(self):
+        if not self.direct_rows or not self.subscribed_symbols:
+            return
+        count = 0
+        while count < self.max_publish_batch and self.direct_rows and self.subscribed_symbols:
+            row = self.direct_rows[self.direct_index]
+            self.direct_index = (self.direct_index + 1) % len(self.direct_rows)
+            self.direct_event_id += 1
+            t_emit_ns = now_ns()
+            msg = {
+                "type": "bookTicker",
+                "event_id": self.direct_event_id,
+                "symbol": row["symbol"],
+                "bid_px": float(row["bid_px"]),
+                "bid_qty": float(row["bid_qty"]),
+                "ask_px": float(row["ask_px"]),
+                "ask_qty": float(row["ask_qty"]),
+                "t_exchange_emit_ns": t_emit_ns,
+                "_t_msg_received_ns": t_emit_ns,
+            }
+            if self.subscribed_symbols and msg["symbol"] not in self.subscribed_symbols:
+                continue
+            try:
+                self._publish_book_ticker(msg)
+            except Exception:
+                self.logger.error("mock md direct publish failed:\n" + traceback.format_exc())
+            count += 1
+
+    def _publish_next_direct(self):
+        return
+
+    def on_stop(self):
+        self.running = False
+        if self.client is not None:
+            self.client.close()
+            self.client = None
+        if self.trace is not None:
+            self.trace.close()
+        try:
+            pywingchun.MarketData.on_stop(self)
+        except Exception:
+            pass
 
     def _ensure_replay_thread(self):
         with self.thread_lock:
@@ -138,8 +213,6 @@ class MockMd(pywingchun.MarketData):
         depth.ask_price = [float(msg["ask_px"])]
         depth.ask_volume = [float(msg["ask_qty"])]
 
-        # Python strategy code can read these attrs when the binding allows it;
-        # native Depth consumers still use data_time and book fields above.
         self._try_setattr(depth, "event_id", int(msg["event_id"]))
         self._try_setattr(depth, "t_exchange_emit_ns", int(msg["t_exchange_emit_ns"]))
         self._try_setattr(depth, "t_msg_received_ns", t_msg_received_ns)

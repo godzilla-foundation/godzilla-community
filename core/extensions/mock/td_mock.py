@@ -10,8 +10,9 @@ from .common import (
     DEFAULT_ORDER_PORT,
     DEFAULT_TRACE_DIR,
     JsonLineClient,
-    TraceWriter,
+    make_trace_writer,
     config_value,
+    env_bool,
     load_config,
     now_ns,
     resolve_path,
@@ -37,11 +38,13 @@ class MockTd(pywingchun.Trader):
         self.config = load_config(json_config)
         self.host = config_value(self.config, "order_host", DEFAULT_ORDER_HOST)
         self.port = int(config_value(self.config, "order_port", DEFAULT_ORDER_PORT))
+        self.no_socket = env_bool("GZ_MOCK_TD_NO_SOCKET", bool(config_value(self.config, "no_socket", False)))
         self.default_status = config_value(self.config, "order_status", "Submitted")
         self.client: Optional[JsonLineClient] = None
-        self.trace = TraceWriter(
+        self.trace = make_trace_writer(
             resolve_path(config_value(self.config, "td_trace_path", None), DEFAULT_TRACE_DIR / "mock_td.csv"),
             TD_TRACE_FIELDS,
+            self.config,
         )
         self.logger = create_logger(
             "mock_td",
@@ -50,7 +53,10 @@ class MockTd(pywingchun.Trader):
         )
 
     def on_start(self):
-        self.client = JsonLineClient(self.host, self.port).connect()
+        if not self.no_socket:
+            self.client = JsonLineClient(self.host, self.port).connect()
+        else:
+            self.logger.info("mock td no-socket shm benchmark mode enabled")
         pywingchun.Trader.on_start(self)
 
     def insert_order(self, event):
@@ -70,7 +76,7 @@ class MockTd(pywingchun.Trader):
         return False
 
     def _send_order_input(self, order_input: Any) -> Dict[str, Any]:
-        if self.client is None:
+        if not self.no_socket and self.client is None:
             self.client = JsonLineClient(self.host, self.port).connect()
 
         t_order_constructed_ns = now_ns()
@@ -87,7 +93,8 @@ class MockTd(pywingchun.Trader):
             "qty": float(getattr(order_input, "volume", getattr(order_input, "qty", 0.0))),
             "t_order_socket_write_ns": t_order_socket_write_ns,
         }
-        self.client.send_json(msg)
+        if not self.no_socket:
+            self.client.send_json(msg)
         self.trace.write(
             {
                 **msg,

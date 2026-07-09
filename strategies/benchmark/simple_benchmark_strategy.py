@@ -1,4 +1,7 @@
 import csv
+import os
+import queue
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict
@@ -83,6 +86,85 @@ class TraceWriter:
         self.file.close()
 
 
+class AsyncTraceWriter:
+    def __init__(self, path: str, flush_interval_s: float = 0.1):
+        self.path = Path(path).expanduser()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.flush_interval_s = flush_interval_s
+        self.queue: queue.SimpleQueue[Any] = queue.SimpleQueue()
+        self.closed = threading.Event()
+        self.file = self.path.open("a", newline="", encoding="utf-8")
+        self.writer = csv.DictWriter(self.file, fieldnames=TRACE_FIELDS)
+        if self.path.stat().st_size == 0:
+            self.writer.writeheader()
+            self.file.flush()
+        self.thread = threading.Thread(target=self._run, name="benchmark-trace-writer", daemon=True)
+        self.thread.start()
+
+    def write(self, row: Dict[str, Any]) -> None:
+        if not self.closed.is_set():
+            self.queue.put(row)
+
+    def close(self) -> None:
+        if self.closed.is_set():
+            return
+        self.closed.set()
+        self.queue.put(None)
+        self.thread.join()
+        self._drain()
+        self.file.flush()
+        self.file.close()
+
+    def _run(self) -> None:
+        last_flush = time.monotonic()
+        while True:
+            row = self.queue.get()
+            if row is None:
+                break
+            self._write_row(row)
+            now = time.monotonic()
+            if now - last_flush >= self.flush_interval_s:
+                self.file.flush()
+                last_flush = now
+        self._drain()
+        self.file.flush()
+
+    def _drain(self) -> None:
+        while True:
+            try:
+                row = self.queue.get_nowait()
+            except queue.Empty:
+                return
+            if row is not None:
+                self._write_row(row)
+
+    def _write_row(self, row: Dict[str, Any]) -> None:
+        self.writer.writerow({field: row.get(field, "") for field in TRACE_FIELDS})
+
+
+class NullTraceWriter:
+    def write(self, row: Dict[str, Any]) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+def _env_value(name: str, default: Any = None) -> Any:
+    value = os.getenv(name)
+    return default if value is None or value == "" else value
+
+
+def _make_trace_writer(path: str, config: Dict[str, Any]):
+    mode = str(_env_value("GZ_BENCH_TRACE_MODE", _config_value(config, "trace_mode", "csv"))).strip().lower()
+    if mode in {"0", "off", "none", "disabled", "journal"}:
+        return NullTraceWriter()
+    if mode in {"async", "buffered"}:
+        interval = float(_env_value("GZ_BENCH_TRACE_FLUSH_INTERVAL_S", _config_value(config, "trace_flush_interval_s", 0.1)))
+        return AsyncTraceWriter(path, interval)
+    return TraceWriter(path)
+
+
 def pre_start(context):
     config = context.get_config()
     symbol = _config_value(config, "symbol", "BTC-USDT")
@@ -97,7 +179,7 @@ def pre_start(context):
     context.subscribe(md_source, [symbol], instrument_type, exchange_id)
 
     trace_path = _config_value(config, "strategy_trace_path", "traces/raw/simple_benchmark_strategy.csv")
-    context.set_object("benchmark_trace", TraceWriter(trace_path))
+    context.set_object("benchmark_trace", _make_trace_writer(trace_path, config))
     context.set_object("benchmark_orders", 0)
     context.set_object("benchmark_last_event_id", None)
     context.log().info(f"simple benchmark strategy subscribed: {symbol} from {md_source}")

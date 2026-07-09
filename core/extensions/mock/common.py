@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import queue
 import socket
 import threading
 import time
@@ -74,6 +75,86 @@ class TraceWriter:
             self._file.close()
 
 
+class AsyncTraceWriter:
+    def __init__(self, path: Path, fieldnames: Iterable[str], flush_interval_s: float = 0.1):
+        self.path = path
+        self.fieldnames = list(fieldnames)
+        self.flush_interval_s = flush_interval_s
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._queue: queue.SimpleQueue[Optional[Dict[str, Any]]] = queue.SimpleQueue()
+        self._closed = threading.Event()
+        self._file = self.path.open("a", newline="", encoding="utf-8")
+        self._writer = csv.DictWriter(self._file, fieldnames=self.fieldnames)
+        if self.path.stat().st_size == 0:
+            self._writer.writeheader()
+            self._file.flush()
+        self._thread = threading.Thread(target=self._run, name=f"trace-writer-{self.path.name}", daemon=True)
+        self._thread.start()
+
+    def write(self, row: Dict[str, Any]) -> None:
+        if not self._closed.is_set():
+            self._queue.put(row)
+
+    def close(self) -> None:
+        if self._closed.is_set():
+            return
+        self._closed.set()
+        self._queue.put(None)
+        self._thread.join()
+        self._drain()
+        self._file.flush()
+        self._file.close()
+
+    def _run(self) -> None:
+        last_flush = time.monotonic()
+        while True:
+            row = self._queue.get()
+            if row is None:
+                break
+            self._write_row(row)
+            now = time.monotonic()
+            if now - last_flush >= self.flush_interval_s:
+                self._file.flush()
+                last_flush = now
+        self._drain()
+        self._file.flush()
+
+    def _drain(self) -> None:
+        while True:
+            try:
+                row = self._queue.get_nowait()
+            except queue.Empty:
+                return
+            if row is not None:
+                self._write_row(row)
+
+    def _write_row(self, row: Dict[str, Any]) -> None:
+        self._writer.writerow({name: row.get(name, "") for name in self.fieldnames})
+
+
+class NullTraceWriter:
+    def write(self, row: Dict[str, Any]) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+def trace_mode(config: Optional[Dict[str, Any]] = None) -> str:
+    config = config or {}
+    return str(env_value("GZ_BENCH_TRACE_MODE", config_value(config, "trace_mode", "csv"))).strip().lower()
+
+
+def make_trace_writer(path: Path, fieldnames: Iterable[str], config: Optional[Dict[str, Any]] = None):
+    mode = trace_mode(config)
+    if mode in {"0", "off", "none", "disabled", "journal"}:
+        return NullTraceWriter()
+    if mode in {"async", "buffered"}:
+        interval = float(env_value("GZ_BENCH_TRACE_FLUSH_INTERVAL_S", config_value(config or {}, "trace_flush_interval_s", 0.1)))
+        return AsyncTraceWriter(path, fieldnames, interval)
+    return TraceWriter(path, fieldnames)
+
+
 class JsonLineClient:
     def __init__(self, host: str, port: int, timeout_s: float = 5.0):
         self.host = host
@@ -115,3 +196,22 @@ def get_field(obj: Any, name: str, default: Any = None) -> Any:
     if isinstance(obj, dict):
         return obj.get(name, default)
     return getattr(obj, name, default)
+
+
+def env_value(name: str, default: Any = None) -> Any:
+    value = os.getenv(name)
+    return default if value is None or value == "" else value
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    return int(value)

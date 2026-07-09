@@ -2,7 +2,7 @@
 
 WORK_HOME=`dirname $0`
 
-start() {
+prepare() {
     cd $WORK_HOME
 
     echo "clearing journal..."
@@ -11,6 +11,10 @@ start() {
     echo "clearing benchmark traces..."
     mkdir -p traces/raw
     rm -f traces/raw/*.csv
+}
+
+start() {
+    prepare
 
     # start mock replay server
     pm2 start replay_server.json
@@ -45,6 +49,39 @@ start() {
     echo "pm2 ls to show the services"
 }
 
+start_shm() {
+    prepare
+
+    # start master
+    pm2 start master.json
+    echo "starting master..."
+    sleep 5
+
+    # start ledger
+    pm2 start ledger.json
+    echo "starting ledger..."
+    sleep 5
+
+    TRACE_MODE=${GZ_BENCH_TRACE_MODE:-buffered}
+
+    # start mock md in direct shm mode
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE GZ_MOCK_MD_DIRECT=1 GZ_MOCK_MD_INTERVAL_NS=${GZ_MOCK_MD_INTERVAL_NS:-5000000} pm2 start md_mock.json --update-env
+    echo "starting mock md direct shm mode..."
+    sleep 5
+
+    # start mock td without exchange socket
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE GZ_MOCK_TD_NO_SOCKET=1 pm2 start td_mock.json --update-env
+    echo "starting mock td no-socket mode..."
+    sleep 5
+
+    # start benchmark strategy
+    GZ_BENCH_TRACE_MODE=$TRACE_MODE pm2 start strategy.json --update-env
+    echo "starting benchmark strategy..."
+    sleep 5
+
+    echo "pm2 ls to show the services"
+}
+
 stop() {
     cd $WORK_HOME
 
@@ -63,11 +100,13 @@ stop() {
 
 
 if [ $# -lt 1 ]; then
-    echo "please indicate action [start/stop]"
+    echo "please indicate action [start/start-shm/stop]"
     exit 1
 fi
 if [ "$1" = "start" ]; then
     start
+elif [ "$1" = "start-shm" ]; then
+    start_shm
 elif [ "$1" = "stop" ]; then
     stop
 else

@@ -107,3 +107,30 @@ scripts/benchmark/traces/raw
 cd ~/dev/godzilla-community/scripts/benchmark
 python3 analysis/summarize_latency.py --raw-dir traces/raw --out-dir analysis/output
 ```
+
+### Shm-only latency mode
+
+To measure the Kungfu internal MD -> strategy -> TD path without the TCP replay server and without the mock exchange order socket:
+
+```bash
+bash run.sh stop
+bash run.sh start-shm
+python3 analysis/summarize_latency.py --raw-dir traces/raw --out-dir analysis/output
+```
+
+`start-shm` starts only master, ledger, mock MD, mock TD, and the benchmark strategy. Mock MD publishes Depth directly from the extension after the strategy subscribes. Mock TD records the incoming OrderInput and writes an order report without sending to the replay server. In this mode `mock_exchange_orders.csv` is not expected, and `exchange_unmatched` in the analysis output is expected to equal `joined_rows`.
+
+`start-shm` defaults `GZ_BENCH_TRACE_MODE=buffered`: trace rows are queued in the hot path and flushed by a background writer, so `analysis/summarize_latency.py` can still read CSV output. Use `GZ_BENCH_TRACE_MODE=csv` for synchronous debug traces, or `GZ_BENCH_TRACE_MODE=journal`/`off` to disable benchmark CSV traces entirely.
+
+For journal-only shm latency analysis, start with `GZ_BENCH_TRACE_MODE=journal` and summarize from Kungfu journals:
+
+```bash
+GZ_BENCH_TRACE_MODE=journal bash run.sh start-shm
+python3 analysis/summarize_latency_journal.py --out-dir analysis/output
+```
+
+The default direct MD interval is 5ms to avoid Python strategy/CSV trace backlog. For throughput stress tests, override it explicitly:
+
+```bash
+GZ_MOCK_MD_INTERVAL_NS=1000000 bash run.sh start-shm
+```
