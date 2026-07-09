@@ -96,7 +96,7 @@ def pre_start(context):
         context.add_account(td_source, account)
     context.subscribe(md_source, [symbol], instrument_type, exchange_id)
 
-    trace_path = _config_value(config, "strategy_trace_path", "core/extensions/mock/traces/raw/simple_benchmark_strategy.csv")
+    trace_path = _config_value(config, "strategy_trace_path", "traces/raw/simple_benchmark_strategy.csv")
     context.set_object("benchmark_trace", TraceWriter(trace_path))
     context.set_object("benchmark_orders", 0)
     context.set_object("benchmark_last_event_id", None)
@@ -146,9 +146,7 @@ def _on_quote(context, quote):
     order_type = _enum_value(OrderType, _config_value(config, "order_type", "Limit"), OrderType.Limit)
 
     t_order_constructed_ns = now_ns()
-    order_id = context.insert_order(symbol, instrument_type, exchange_id, account, price, qty, order_type, side)
-    context.set_object("benchmark_orders", orders + 1)
-
+    side_text = _side_name(side)
     trace = context.get_object("benchmark_trace")
     if trace is not None:
         trace.write(
@@ -157,9 +155,9 @@ def _on_quote(context, quote):
                 "system": "godzilla",
                 "event_id": event_id,
                 "symbol": symbol,
-                "side": _side_name(side),
-                "order_id": order_id,
-                "client_order_id": f"gz-{event_id}-{_side_name(side)}",
+                "side": side_text,
+                "order_id": "",
+                "client_order_id": f"gz-{event_id}-{side_text}",
                 "t_exchange_emit_ns": _get(quote, "t_exchange_emit_ns", ""),
                 "t_msg_received_ns": _get(quote, "t_msg_received_ns", _get(quote, "data_time", "")),
                 "t_strategy_visible_ns": t_strategy_visible_ns,
@@ -168,6 +166,13 @@ def _on_quote(context, quote):
                 "decision_ns": t_order_constructed_ns - t_strategy_triggered_ns,
             }
         )
+
+    try:
+        context.insert_order(symbol, instrument_type, exchange_id, account, price, qty, order_type, side)
+        context.set_object("benchmark_orders", orders + 1)
+    except Exception as exc:
+        context.log().error(f"simple benchmark insert_order failed after trace write: {exc}")
+        context.set_object("benchmark_orders", orders + 1)
 
 
 def _next_side(config: Dict[str, Any], order_count: int):
@@ -179,6 +184,14 @@ def _next_side(config: Dict[str, Any], order_count: int):
     return Side.Buy if order_count % 2 == 0 else Side.Sell
 
 
+def _first_number(value: Any, default: float = 0.0) -> float:
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return default
+        value = value[0]
+    return float(value)
+
+
 def _next_price(config: Dict[str, Any], quote: Any, side: Any) -> float:
     tick_size = float(_config_value(config, "tick_size", 0.5))
     fixed_price = _config_value(config, "fixed_price", None)
@@ -188,7 +201,7 @@ def _next_price(config: Dict[str, Any], quote: Any, side: Any) -> float:
     side_text = _side_name(side)
     if side_text == "BUY":
         bid = _get(quote, "bid_price", _get(quote, "bid_px", 0.0))
-        return float(bid) - tick_size
+        return _first_number(bid) - tick_size
 
     ask = _get(quote, "ask_price", _get(quote, "ask_px", 0.0))
-    return float(ask) + tick_size
+    return _first_number(ask) + tick_size

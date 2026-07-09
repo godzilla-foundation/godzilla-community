@@ -6,7 +6,10 @@
       "script": "../../core/python/dev_run.py",
       "exec_interpreter": "python3",
       "args": "-l trace td -s mock -a benchmark",
-      "watch": "true"
+      "watch": false,
+      "env": {
+        "GZ_TRACE_DIR": "traces/raw"
+      }
     }
   ]
 }

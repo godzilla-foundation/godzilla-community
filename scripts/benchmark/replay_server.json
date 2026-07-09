@@ -5,8 +5,8 @@
       "cwd": "./",
       "script": "../../core/extensions/mock/replay_server.py",
       "exec_interpreter": "python3",
-      "args": "--dataset ../../core/extensions/mock/btcusdt_bookticker_sample.csv --md-port 19001 --order-port 19002 --order-trace ../../core/extensions/mock/traces/raw/mock_exchange_orders.csv",
-      "watch": "false"
+      "args": "--dataset ../../core/extensions/mock/btcusdt_bookticker_sample.csv --md-port 19001 --order-port 19002 --order-trace traces/raw/mock_exchange_orders.csv --loop",
+      "watch": false
     }
   ]
 }

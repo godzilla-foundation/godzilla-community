@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import socket
 import threading
 import time
@@ -14,7 +15,10 @@ DEFAULT_ORDER_PORT = 19002
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 DEFAULT_DATASET = PACKAGE_DIR / "btcusdt_bookticker_sample.csv"
-DEFAULT_TRACE_DIR = PACKAGE_DIR / "traces" / "raw"
+if os.getenv("GZ_TRACE_DIR"):
+    DEFAULT_TRACE_DIR = Path(os.getenv("GZ_TRACE_DIR")).expanduser().resolve()
+else:
+    DEFAULT_TRACE_DIR = PACKAGE_DIR / "traces" / "raw"
 
 
 def now_ns() -> int:
@@ -80,6 +84,7 @@ class JsonLineClient:
 
     def connect(self) -> "JsonLineClient":
         self._sock = socket.create_connection((self.host, self.port), self.timeout_s)
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._file = self._sock.makefile("rwb", buffering=0)
         return self
 

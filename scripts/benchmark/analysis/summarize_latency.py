@@ -6,8 +6,8 @@ import math
 from pathlib import Path
 
 DEFAULT_RAW_DIRS = [
-    Path("core/extensions/mock/traces/raw"),
-    Path("../../core/extensions/mock/traces/raw"),
+    Path("traces/raw"),
+    Path("scripts/benchmark/traces/raw"),
 ]
 DEFAULT_OUT_DIR = Path("analysis/output")
 JOINED_FIELDS = ["run_id", "system", "event_id", "client_order_id", "symbol", "side", "t_exchange_emit_ns", "t_msg_received_ns", "t_strategy_visible_ns", "t_strategy_triggered_ns", "t_order_constructed_ns", "t_order_socket_write_ns", "t_order_received_ns", "t_ack_ns", "md_ingest_ns", "decision_ns", "order_egress_ns", "total_tick_to_trade_ns"]
@@ -70,6 +70,31 @@ def find(row, indexes):
     return "unmatched", {}
 
 
+def find_nearest_time_side(row, candidates, used, max_delta_ns=5_000_000_000):
+    target = to_int(cell(row, "t_order_constructed_ns"))
+    side = cell(row, "side")
+    if target is None or not side:
+        return "unmatched", {}
+    best_idx = None
+    best_row = None
+    best_delta = None
+    for idx, candidate in enumerate(candidates):
+        if idx in used or cell(candidate, "side") != side:
+            continue
+        candidate_time = to_int(cell(candidate, "t_order_constructed_ns"))
+        if candidate_time is None:
+            continue
+        delta = abs(candidate_time - target)
+        if delta <= max_delta_ns and (best_delta is None or delta < best_delta):
+            best_idx = idx
+            best_row = candidate
+            best_delta = delta
+    if best_idx is None:
+        return "unmatched", {}
+    used.add(best_idx)
+    return "time_side", best_row
+
+
 def derive(row, target, left, right):
     lhs = to_int(row.get(left))
     rhs = to_int(row.get(right))
@@ -85,14 +110,18 @@ def join(raw_dir):
     md_by_event = index_first(md, ["event_id"])
     td_indexes = [("client_order_id", index_first(td, ["client_order_id"]), ["client_order_id"]), ("event_id_side", index_first(td, ["event_id", "side"]), ["event_id", "side"]), ("event_id", index_first(td, ["event_id"]), ["event_id"])]
     exch_indexes = [("client_order_id", index_first(exch, ["client_order_id"]), ["client_order_id"]), ("event_id_side", index_first(exch, ["event_id", "side"]), ["event_id", "side"]), ("event_id", index_first(exch, ["event_id"]), ["event_id"])]
-    counts = {"td_client_order_id": 0, "td_event_id_side": 0, "td_event_id": 0, "td_unmatched": 0, "exchange_client_order_id": 0, "exchange_event_id_side": 0, "exchange_event_id": 0, "exchange_unmatched": 0}
+    counts = {"td_client_order_id": 0, "td_event_id_side": 0, "td_event_id": 0, "td_time_side": 0, "td_unmatched": 0, "exchange_client_order_id": 0, "exchange_event_id_side": 0, "exchange_event_id": 0, "exchange_unmatched": 0}
     rows = []
+    used_td_time_matches = set()
 
     for s in strategy:
         event_id = cell(s, "event_id")
         md_row = md_by_event.get((event_id,), {})
         td_mode, td_row = find(s, td_indexes)
-        ex_mode, ex_row = find(s, exch_indexes)
+        if td_mode == "unmatched":
+            td_mode, td_row = find_nearest_time_side(s, td, used_td_time_matches)
+        ex_source = td_row if td_row else s
+        ex_mode, ex_row = find(ex_source, exch_indexes)
         counts[f"td_{td_mode}"] += 1
         counts[f"exchange_{ex_mode}"] += 1
         row = {

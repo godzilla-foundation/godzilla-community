@@ -6,9 +6,10 @@
       "script": "../../core/python/dev_run.py",
       "exec_interpreter": "python3",
       "args": "-l trace md -s mock",
-      "watch": "true",
+      "watch": false,
       "env": {
-        "CLEAR_JOURNAL": "1"
+        "CLEAR_JOURNAL": "1",
+        "GZ_TRACE_DIR": "traces/raw"
       }
     }
   ]

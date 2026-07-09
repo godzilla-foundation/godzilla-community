@@ -9,8 +9,8 @@ start() {
     find ~/.config/kungfu/app/ -name "*.journal" | xargs rm -f
 
     echo "clearing benchmark traces..."
-    mkdir -p ../../core/extensions/mock/traces/raw
-    rm -f ../../core/extensions/mock/traces/raw/*.csv
+    mkdir -p traces/raw
+    rm -f traces/raw/*.csv
 
     # start mock replay server
     pm2 start replay_server.json

@@ -6,7 +6,7 @@
       "script": "../../core/python/dev_run.py",
       "exec_interpreter": "python3",
       "args": "-l info ledger",
-      "watch": "true",
+      "watch": false,
       "env": {
         "CLEAR_JOURNAL": "1"
       }

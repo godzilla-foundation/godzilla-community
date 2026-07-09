@@ -12,5 +12,5 @@
   "side_mode": "alternate",
   "max_orders": 1000,
   "dedupe_event_id": true,
-  "strategy_trace_path": "core/extensions/mock/traces/raw/simple_benchmark_strategy.csv"
+  "strategy_trace_path": "traces/raw/simple_benchmark_strategy.csv"
 }

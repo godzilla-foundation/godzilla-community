@@ -51,6 +51,7 @@ class ReplayServer:
         order_host: str = DEFAULT_ORDER_HOST,
         order_port: int = DEFAULT_ORDER_PORT,
         order_trace_path: Path = DEFAULT_TRACE_DIR / "mock_exchange_orders.csv",
+        loop: bool = False,
     ):
         self.dataset = Path(dataset)
         self.md_host = md_host
@@ -58,21 +59,26 @@ class ReplayServer:
         self.order_host = order_host
         self.order_port = int(order_port)
         self.order_trace = TraceWriter(Path(order_trace_path), ORDER_TRACE_FIELDS)
+        self.loop = loop
 
     async def handle_md_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         del reader
-        with self.dataset.open(newline="", encoding="utf-8") as f:
-            for row in csv.DictReader(f):
-                delay_ns = int(row.get("delay_ns") or 0)
-                if delay_ns > 0:
-                    await asyncio.sleep(delay_ns / 1_000_000_000)
+        try:
+            while True:
+                with self.dataset.open(newline="", encoding="utf-8") as f:
+                    for row in csv.DictReader(f):
+                        delay_ns = int(row.get("delay_ns") or 0)
+                        if delay_ns > 0:
+                            await asyncio.sleep(delay_ns / 1_000_000_000)
 
-                msg = self._book_ticker_from_row(row)
-                writer.write(json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n")
-                await writer.drain()
-
-        writer.close()
-        await writer.wait_closed()
+                        msg = self._book_ticker_from_row(row)
+                        writer.write(json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n")
+                        await writer.drain()
+                if not self.loop:
+                    break
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
     async def handle_order_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         while True:
@@ -135,6 +141,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--order-host", default=DEFAULT_ORDER_HOST)
     parser.add_argument("--order-port", type=int, default=DEFAULT_ORDER_PORT)
     parser.add_argument("--order-trace", type=Path, default=DEFAULT_TRACE_DIR / "mock_exchange_orders.csv")
+    parser.add_argument("--loop", action="store_true", help="Replay the dataset repeatedly for long-running benchmarks")
     return parser.parse_args()
 
 
@@ -147,6 +154,7 @@ def main() -> None:
         order_host=args.order_host,
         order_port=args.order_port,
         order_trace_path=args.order_trace,
+        loop=args.loop,
     )
     asyncio.run(server.run())
 

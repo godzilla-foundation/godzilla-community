@@ -1,4 +1,6 @@
+import queue
 import threading
+import traceback
 from typing import Any, Dict, Optional
 
 import pywingchun
@@ -42,6 +44,8 @@ class MockMd(pywingchun.MarketData):
             config_value(self.config, "instrument_type", "Spot"),
             pywingchun.constants.InstrumentType.Spot,
         )
+        self.publish_interval_ns = int(config_value(self.config, "publish_interval_ns", 1_000_000))
+        self.max_publish_batch = int(config_value(self.config, "max_publish_batch", 1024))
         self.trace = TraceWriter(
             resolve_path(config_value(self.config, "md_trace_path", None), DEFAULT_TRACE_DIR / "mock_md.csv"),
             MD_TRACE_FIELDS,
@@ -55,11 +59,15 @@ class MockMd(pywingchun.MarketData):
         self.thread: Optional[threading.Thread] = None
         self.running = False
         self.subscribed_symbols = set()
+        self.thread_lock = threading.Lock()
+        self.messages: queue.SimpleQueue[Dict[str, Any]] = queue.SimpleQueue()
+        self.received_count = 0
+        self.published_count = 0
 
     def on_start(self):
         self.running = True
-        self.thread = threading.Thread(target=self._read_replay_stream, name="mock-md-replay", daemon=True)
-        self.thread.start()
+        self.add_time_interval(self.publish_interval_ns, lambda event: self._drain_replay_messages())
+        self._ensure_replay_thread()
         pywingchun.MarketData.on_start(self)
 
     def subscribe(self, instruments):
@@ -72,8 +80,16 @@ class MockMd(pywingchun.MarketData):
             self.subscribed_symbols.discard(inst.symbol)
         return True
 
+    def _ensure_replay_thread(self):
+        with self.thread_lock:
+            if self.thread is not None and self.thread.is_alive():
+                return
+            self.thread = threading.Thread(target=self._read_replay_stream, name="mock-md-replay", daemon=True)
+            self.thread.start()
+
     def _read_replay_stream(self):
         try:
+            self.logger.info(f"mock md connecting replay stream {self.host}:{self.port}")
             self.client = JsonLineClient(self.host, self.port).connect()
             for msg in self.client.iter_json():
                 if not self.running:
@@ -83,17 +99,34 @@ class MockMd(pywingchun.MarketData):
                 symbol = str(msg["symbol"])
                 if self.subscribed_symbols and symbol not in self.subscribed_symbols:
                     continue
-                self._publish_book_ticker(msg)
-        except Exception as exc:
-            self.logger.error(f"mock md replay stream stopped: {exc}")
+                msg["_t_msg_received_ns"] = now_ns()
+                self.messages.put(msg)
+                self.received_count += 1
+                if self.received_count <= 3:
+                    self.logger.info(f"mock md received replay event {msg.get('event_id')} {symbol}")
+            self.logger.info("mock md replay stream reached eof")
+        except Exception:
+            self.logger.error("mock md replay stream stopped:\n" + traceback.format_exc())
         finally:
             if self.client is not None:
                 self.client.close()
                 self.client = None
-            self.trace.close()
+
+    def _drain_replay_messages(self):
+        count = 0
+        while count < self.max_publish_batch:
+            try:
+                msg = self.messages.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                self._publish_book_ticker(msg)
+            except Exception:
+                self.logger.error("mock md publish failed:\n" + traceback.format_exc())
+            count += 1
 
     def _publish_book_ticker(self, msg: Dict[str, Any]):
-        t_msg_received_ns = now_ns()
+        t_msg_received_ns = int(msg.get("_t_msg_received_ns", now_ns()))
         depth = pywingchun.Depth()
         depth.source_id = self.source_id
         depth.data_time = t_msg_received_ns
@@ -112,7 +145,6 @@ class MockMd(pywingchun.MarketData):
         self._try_setattr(depth, "t_msg_received_ns", t_msg_received_ns)
 
         t_strategy_visible_ns = now_ns()
-        self.get_writer(0).write_data(0, wc_msg.Depth, depth)
         self.trace.write(
             {
                 "event_id": int(msg["event_id"]),
@@ -123,6 +155,10 @@ class MockMd(pywingchun.MarketData):
                 "md_ingest_ns": t_strategy_visible_ns - t_msg_received_ns,
             }
         )
+        self.get_writer(0).write_data(0, wc_msg.Depth, depth)
+        self.published_count += 1
+        if self.published_count <= 3:
+            self.logger.info(f"mock md published replay event {msg.get('event_id')} {depth.symbol}")
 
     def _try_setattr(self, obj: Any, name: str, value: Any) -> None:
         try:

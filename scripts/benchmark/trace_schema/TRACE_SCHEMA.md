@@ -10,8 +10,7 @@ ACK timing is diagnostic only and must not be included in headline latency.
 
 ## Raw Files
 
-Default raw trace directory is `core/extensions/mock/traces/raw` from the repository root.
-When scripts run with `scripts/benchmark` as cwd, strategy traces may appear under `scripts/benchmark/core/extensions/mock/traces/raw`; the analysis scripts can read either path via `--raw-dir`.
+Default raw trace directory is `scripts/benchmark/traces/raw` from the repository root, or `traces/raw` when commands run from `scripts/benchmark`.
 
 | File | Producer | Required columns |
 | --- | --- | --- |
