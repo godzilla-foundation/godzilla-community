@@ -55,7 +55,10 @@ class MockMd(pywingchun.MarketData):
             "GZ_MOCK_MD_INTERVAL_NS",
             int(config_value(self.config, "publish_interval_ns", 1_000_000)),
         )
-        self.max_publish_batch = int(config_value(self.config, "max_publish_batch", 1024))
+        self.max_publish_batch = env_int(
+            "GZ_MOCK_MD_MAX_BATCH",
+            int(config_value(self.config, "max_publish_batch", 1024)),
+        )
         self.dataset_path = resolve_path(
             env_value("GZ_MOCK_MD_DATASET", config_value(self.config, "dataset", None)),
             DEFAULT_DATASET,

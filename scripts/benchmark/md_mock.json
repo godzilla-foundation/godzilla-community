@@ -5,7 +5,7 @@
       "cwd": "./",
       "script": "../../core/python/dev_run.py",
       "exec_interpreter": "python3",
-      "args": "-l trace md -s mock",
+      "args": "-l info md -s mock",
       "watch": false,
       "env": {
         "CLEAR_JOURNAL": "1",

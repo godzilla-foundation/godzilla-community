@@ -145,3 +145,58 @@ The default direct MD interval is 5ms to avoid Python strategy/CSV trace backlog
 ```bash
 GZ_MOCK_MD_INTERVAL_NS=1000000 bash run.sh start-shm
 ```
+
+### One-shot native benchmark
+
+Use `run-once-cpp` for repeatable native shm-only latency runs. It stops any existing benchmark services, clears journals/traces, starts the native C++ benchmark stack, waits for a short drain window, stops services, runs journal analysis, and prints the key latency summary.
+
+Recommended command:
+
+```bash
+cd ~/dev/godzilla-community/scripts/benchmark
+
+GZ_BENCH_TRACE_MODE=journal \
+GZ_MOCK_MD_INTERVAL_NS=300000 \
+GZ_MOCK_MD_MAX_EVENTS=5000 \
+GZ_MOCK_MD_SPIN_NS=50000 \
+GZ_BENCH_CORE_MASTER=0 \
+GZ_BENCH_CORE_LEDGER=1 \
+GZ_BENCH_CORE_MD=2 \
+GZ_BENCH_CORE_TD=3 \
+GZ_BENCH_CORE_STRATEGY=4 \
+GZ_BENCH_RUN_TIMEOUT_SEC=2 \
+GZ_BENCH_ANALYSIS_SKIP_FIRST=100 \
+GZ_BENCH_ANALYSIS_MAX_MESSAGES=10000 \
+bash run.sh run-once-cpp
+```
+
+Key controls:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `GZ_BENCH_TRACE_MODE` | `buffered` | Use `journal` for journal-only latency analysis without benchmark CSV writes in the hot path. |
+| `GZ_MOCK_MD_INTERVAL_NS` | `1000000` in `start-cpp` | Native mock MD publish interval in nanoseconds. `300000` means 300us. |
+| `GZ_MOCK_MD_MAX_EVENTS` | `0` | Maximum native MD depth events to publish. `0` means unlimited. |
+| `GZ_MOCK_MD_SPIN_NS` | `0` | Sleep+spin wait window for native MD. For example, `50000` sleeps until 50us before the next tick, then busy-spins. |
+| `GZ_BENCH_CORE_MASTER` | unset | Optional CPU core list for master, applied with `taskset -pc`. |
+| `GZ_BENCH_CORE_LEDGER` | unset | Optional CPU core list for ledger. |
+| `GZ_BENCH_CORE_MD` | unset | Optional CPU core list for mock MD. |
+| `GZ_BENCH_CORE_TD` | unset | Optional CPU core list for mock TD. |
+| `GZ_BENCH_CORE_STRATEGY` | unset | Optional CPU core list for native strategy. |
+| `GZ_BENCH_RUN_TIMEOUT_SEC` | `2` | Extra drain wait after `start-cpp` returns before stopping services. |
+| `GZ_BENCH_ANALYSIS_SKIP_FIRST` | `100` | Number of joined rows to skip before summarizing, useful for removing startup warmup. |
+| `GZ_BENCH_ANALYSIS_MAX_MESSAGES` | `10000` | Maximum journal frames to read per session during analysis. |
+| `GZ_BENCH_ANALYSIS_OUT_DIR` | `analysis/output` | Analysis output directory. |
+
+`run-once-cpp` prints the full analyzer output plus a compact summary like:
+
+```text
+summary_json: analysis/output/summary_journal.json
+input_rows: {"depth":5000,"order":1000,"order_input":1000}
+joined_rows: 900
+join_counts: {"depth_price_side":1000,"depth_time":0,"depth_unmatched":0,"order_order_id":1000,"order_time":0,"order_unmatched":0}
+total_tick_to_trade_ns: count=900 p50=136064.0ns p90=301849.6ns p99=464430.08ns p99.9=609928.192ns
+```
+
+The current journal analyzer joins TD reports by `order_id` and joins depth to order input by `(symbol, side, price)` first, with time matching as fallback. The joined CSV includes `depth_event_id`, `join_depth_method`, and `join_order_method` columns so each row's matching method can be audited.
+

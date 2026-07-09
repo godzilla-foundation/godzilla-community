@@ -51,6 +51,7 @@ class MockTd(pywingchun.Trader):
             config_value(self.config, "log_level", "info"),
             pyyjj.location(pyyjj.mode.LIVE, pyyjj.category.TD, "mock", account_id, locator),
         )
+        self.sent_count = 0
 
     def on_start(self):
         if not self.no_socket:
@@ -63,7 +64,9 @@ class MockTd(pywingchun.Trader):
         order_input = event.data
         msg = self._send_order_input(order_input)
         self._write_order_report(event, order_input)
-        self.logger.info(f"mock order sent: {msg}")
+        self.sent_count += 1
+        if self.sent_count <= 3:
+            self.logger.info(f"mock order sent: {msg}")
         return True
 
     def cancel_order(self, event):
