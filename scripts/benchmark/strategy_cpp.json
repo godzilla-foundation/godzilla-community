@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {
+      "name": "benchmark_strategy_cpp",
+      "cwd": "./",
+      "script": "./start_strategy_cpp.sh",
+      "interpreter": "bash",
+      "watch": false
+    }
+  ]
+}
