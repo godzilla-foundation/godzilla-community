@@ -146,6 +146,8 @@ The default direct MD interval is 5ms to avoid Python strategy/CSV trace backlog
 GZ_MOCK_MD_INTERVAL_NS=1000000 bash run.sh start-shm
 ```
 
+For the native journal-only benchmark path, the current recommended MD spin setting is `GZ_MOCK_MD_SPIN_NS=100000`, which gave the best 5-run tail behavior in our latest comparison on `GZ_MOCK_MD_INTERVAL_NS=300000`.
+
 ### One-shot native benchmark
 
 Use `run-once-cpp` for repeatable native shm-only latency runs. It stops any existing benchmark services, clears journals/traces, starts the native C++ benchmark stack, waits for a short drain window, stops services, runs journal analysis, and prints the key latency summary.
@@ -158,7 +160,7 @@ cd ~/dev/godzilla-community/scripts/benchmark
 GZ_BENCH_TRACE_MODE=journal \
 GZ_MOCK_MD_INTERVAL_NS=300000 \
 GZ_MOCK_MD_MAX_EVENTS=5000 \
-GZ_MOCK_MD_SPIN_NS=50000 \
+GZ_MOCK_MD_SPIN_NS=100000 \
 GZ_BENCH_CORE_MASTER=0 \
 GZ_BENCH_CORE_LEDGER=1 \
 GZ_BENCH_CORE_MD=2 \
@@ -177,7 +179,7 @@ Key controls:
 | `GZ_BENCH_TRACE_MODE` | `buffered` | Use `journal` for journal-only latency analysis without benchmark CSV writes in the hot path. |
 | `GZ_MOCK_MD_INTERVAL_NS` | `1000000` in `start-cpp` | Native mock MD publish interval in nanoseconds. `300000` means 300us. |
 | `GZ_MOCK_MD_MAX_EVENTS` | `0` | Maximum native MD depth events to publish. `0` means unlimited. |
-| `GZ_MOCK_MD_SPIN_NS` | `0` | Sleep+spin wait window for native MD. For example, `50000` sleeps until 50us before the next tick, then busy-spins. |
+| `GZ_MOCK_MD_SPIN_NS` | `0` | Sleep+spin wait window for native MD. For example, `100000` sleeps until 100us before the next tick, then busy-spins. |
 | `GZ_BENCH_CORE_MASTER` | unset | Optional CPU core list for master, applied with `taskset -pc`. |
 | `GZ_BENCH_CORE_LEDGER` | unset | Optional CPU core list for ledger. |
 | `GZ_BENCH_CORE_MD` | unset | Optional CPU core list for mock MD. |
@@ -212,7 +214,7 @@ GZ_BENCH_ANALYSIS_OUT_DIR=analysis/output_many \
 GZ_BENCH_TRACE_MODE=journal \
 GZ_MOCK_MD_INTERVAL_NS=300000 \
 GZ_MOCK_MD_MAX_EVENTS=5000 \
-GZ_MOCK_MD_SPIN_NS=50000 \
+GZ_MOCK_MD_SPIN_NS=100000 \
 GZ_BENCH_CORE_MASTER=0 \
 GZ_BENCH_CORE_LEDGER=1 \
 GZ_BENCH_CORE_MD=2 \
