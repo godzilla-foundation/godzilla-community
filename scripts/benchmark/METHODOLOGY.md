@@ -115,7 +115,7 @@ Outputs are written under `analysis/output` by default.
 
 The analyzer reports `count`, `min`, `max`, `mean`, `p50`, `p90`, `p99`, and `p99.9` for each latency metric. The main result should focus on percentiles rather than average latency.
 
-For publishable results, use repeated runs and report run-to-run variability. A future `run-many-cpp` command should automate this.
+For publishable results, use repeated runs and report run-to-run variability. Use `run-many-cpp` with `GZ_BENCH_RUNS` to run repeated trials and aggregate run summaries. Use `analysis/plot_journal_latency.py` to generate histogram, CDF, tail-by-run, and stage-breakdown charts from the joined journal output.
 
 ## Limitations
 

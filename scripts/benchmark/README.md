@@ -200,3 +200,94 @@ total_tick_to_trade_ns: count=900 p50=136064.0ns p90=301849.6ns p99=464430.08ns 
 
 The current journal analyzer joins TD reports by `order_id` and joins depth to order input by `(symbol, side, price)` first, with time matching as fallback. The joined CSV includes `depth_event_id`, `join_depth_method`, and `join_order_method` columns so each row's matching method can be audited.
 
+### Multi-run native benchmark
+
+Use `run-many-cpp` to repeat the one-shot native benchmark and aggregate run-to-run variability:
+
+```bash
+cd ~/dev/godzilla-community/scripts/benchmark
+
+GZ_BENCH_RUNS=5 \
+GZ_BENCH_ANALYSIS_OUT_DIR=analysis/output_many \
+GZ_BENCH_TRACE_MODE=journal \
+GZ_MOCK_MD_INTERVAL_NS=300000 \
+GZ_MOCK_MD_MAX_EVENTS=5000 \
+GZ_MOCK_MD_SPIN_NS=50000 \
+GZ_BENCH_CORE_MASTER=0 \
+GZ_BENCH_CORE_LEDGER=1 \
+GZ_BENCH_CORE_MD=2 \
+GZ_BENCH_CORE_TD=3 \
+GZ_BENCH_CORE_STRATEGY=4 \
+GZ_BENCH_RUN_TIMEOUT_SEC=2 \
+GZ_BENCH_ANALYSIS_SKIP_FIRST=100 \
+GZ_BENCH_ANALYSIS_MAX_MESSAGES=10000 \
+bash run.sh run-many-cpp
+```
+
+Each run is written to `analysis/output_many/run_001`, `run_002`, and so on. The aggregate files are:
+
+```text
+analysis/output_many/runs_summary.csv
+analysis/output_many/runs_summary.json
+```
+
+The aggregate summary reports min/mean/max across runs for `p50`, `p90`, `p99`, and `p99.9`, plus the best and worst run by `total_tick_to_trade_ns.p99_ns`.
+
+### Journal latency charts
+
+Generate publishable charts from one run:
+
+```bash
+python3 analysis/plot_journal_latency.py \
+  --joined analysis/output/run_001/joined_latency_journal.csv \
+  --out-dir analysis/output/run_001/charts
+```
+
+Generate charts from repeated runs:
+
+```bash
+python3 analysis/plot_journal_latency.py \
+  --runs-dir analysis/output_many \
+  --out-dir analysis/output_many/charts
+```
+
+Default chart outputs:
+
+```text
+total_tick_to_trade_ns_histogram.png
+total_tick_to_trade_ns_cdf.png
+total_tick_to_trade_ns_tail_by_run.png
+stage_breakdown.png
+total_tick_to_trade_ns_percentiles.csv
+```
+
+Use `--metric md_to_order_input_ns`, `--metric order_report_ns`, or `--metric total_tick_to_trade_ns` to plot a different metric. Use `--all-metrics` to generate histogram, CDF, tail-by-run, and percentile CSV files for all three metrics in one command:
+
+```bash
+python3 analysis/plot_journal_latency.py \
+  --runs-dir analysis/output_many \
+  --out-dir analysis/output_many/charts \
+  --all-metrics
+```
+
+### Tail latency analysis
+
+Export p99/p99.9 rows and the slowest rows from repeated journal runs:
+
+```bash
+python3 analysis/analyze_tail_latency.py \
+  --runs-dir analysis/output_many \
+  --out-dir analysis/output_many/tail
+```
+
+Default tail outputs:
+
+```text
+total_tick_to_trade_ns_p99_rows.csv
+total_tick_to_trade_ns_p99.9_rows.csv
+total_tick_to_trade_ns_top50.csv
+total_tick_to_trade_ns_tail_summary.json
+```
+
+The tail summary reports threshold values, row counts, dominant stage counts, join method counts, run distribution, and stage means for each tail percentile. Use `--metric md_to_order_input_ns` or `--metric order_report_ns` to inspect a specific stage.
+

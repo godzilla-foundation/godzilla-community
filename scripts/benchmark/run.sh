@@ -200,10 +200,8 @@ PY_SUMMARY
     fi
 }
 
-run_once_cpp() {
-    cd $WORK_HOME
-
-    out_dir=${GZ_BENCH_ANALYSIS_OUT_DIR:-analysis/output}
+run_once_cpp_to_dir() {
+    out_dir=$1
     wait_sec=${GZ_BENCH_RUN_TIMEOUT_SEC:-2}
     skip_first=${GZ_BENCH_ANALYSIS_SKIP_FIRST:-100}
     max_messages=${GZ_BENCH_ANALYSIS_MAX_MESSAGES:-10000}
@@ -225,6 +223,36 @@ run_once_cpp() {
     print_summary "$out_dir/summary_journal.json"
 }
 
+run_once_cpp() {
+    cd $WORK_HOME
+
+    out_dir=${GZ_BENCH_ANALYSIS_OUT_DIR:-analysis/output}
+    run_once_cpp_to_dir "$out_dir"
+}
+
+run_many_cpp() {
+    cd $WORK_HOME
+
+    base_out_dir=${GZ_BENCH_ANALYSIS_OUT_DIR:-analysis/output}
+    runs=${GZ_BENCH_RUNS:-5}
+
+    mkdir -p "$base_out_dir"
+    echo "running ${runs} benchmark runs into ${base_out_dir}"
+
+    i=1
+    while [ $i -le $runs ]; do
+        run_dir=`printf "%s/run_%03d" "$base_out_dir" "$i"`
+        echo "========================================"
+        echo "benchmark run $i/$runs -> $run_dir"
+        echo "========================================"
+        run_once_cpp_to_dir "$run_dir"
+        i=$((i + 1))
+    done
+
+    echo "aggregating benchmark runs..."
+    python3 analysis/aggregate_runs.py --runs-dir "$base_out_dir" --out-dir "$base_out_dir"
+}
+
 stop() {
     cd $WORK_HOME
 
@@ -244,7 +272,7 @@ stop() {
 
 
 if [ $# -lt 1 ]; then
-    echo "please indicate action [start/start-shm/start-cpp/run-once-cpp/stop]"
+    echo "please indicate action [start/start-shm/start-cpp/run-once-cpp/run-many-cpp/stop]"
     exit 1
 fi
 if [ "$1" = "start" ]; then
@@ -255,6 +283,8 @@ elif [ "$1" = "start-cpp" ]; then
     start_cpp
 elif [ "$1" = "run-once-cpp" ]; then
     run_once_cpp
+elif [ "$1" = "run-many-cpp" ]; then
+    run_many_cpp
 elif [ "$1" = "stop" ]; then
     stop
 else
