@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "home": "/home/kunxue/.config/kungfu/app",
+    "input_rows": {
+      "depth": 5000,
+      "order": 1000,
+      "order_input": 1000
+    },
+    "join_counts": {
+      "depth_price_side": 1000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "order_order_id": 1000,
+      "order_time": 0,
+      "order_unmatched": 0
+    },
+    "joined_rows": 900,
+    "joined_rows_raw": 1000,
+    "max_messages": 10000,
+    "price_epsilon": 1e-09,
+    "session_ids": {
+      "md": 5,
+      "strategy": 1,
+      "td": 2
+    },
+    "skip_first": 100,
+    "time_basis": "Kungfu journal frame gen_time. total_tick_to_trade_ns is order report gen_time - depth gen_time when order reports are available; otherwise order_input gen_time - depth gen_time."
+  },
+  "metrics": {
+    "md_to_order_input_ns": {
+      "count": 900,
+      "max_ns": 802560,
+      "mean_ns": 105454.36444444445,
+      "min_ns": 13568,
+      "p50_ns": 97280.0,
+      "p90_ns": 133734.40000000002,
+      "p99_9_ns": 607397.8880000245,
+      "p99_ns": 349027.8399999999
+    },
+    "order_report_ns": {
+      "count": 900,
+      "max_ns": 302080,
+      "mean_ns": 45985.28,
+      "min_ns": 8960,
+      "p50_ns": 22272.0,
+      "p90_ns": 123161.6,
+      "p99_9_ns": 270089.984000004,
+      "p99_ns": 172925.43999999965
+    },
+    "total_tick_to_trade_ns": {
+      "count": 900,
+      "max_ns": 949248,
+      "mean_ns": 151439.64444444445,
+      "min_ns": 33792,
+      "p50_ns": 121088.0,
+      "p90_ns": 256000.0,
+      "p99_9_ns": 716802.5600000292,
+      "p99_ns": 438074.87999999995
+    }
+  }
+}

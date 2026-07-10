@@ -1,0 +1,307 @@
+{
+  "runs": [
+    {
+      "depth_price_side": 1000,
+      "depth_rows": 5000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "joined_rows": 900,
+      "joined_rows_raw": 1000,
+      "md_to_order_input_ns.count": 900,
+      "md_to_order_input_ns.max_ns": 587008,
+      "md_to_order_input_ns.mean_ns": 107061.47555555556,
+      "md_to_order_input_ns.min_ns": 13312,
+      "md_to_order_input_ns.p50_ns": 100864.0,
+      "md_to_order_input_ns.p90_ns": 156979.2,
+      "md_to_order_input_ns.p99_9_ns": 570897.920000002,
+      "md_to_order_input_ns.p99_ns": 336158.72,
+      "order_input_rows": 1000,
+      "order_order_id": 1000,
+      "order_report_ns.count": 900,
+      "order_report_ns.max_ns": 573440,
+      "order_report_ns.mean_ns": 59178.95111111111,
+      "order_report_ns.min_ns": 8192,
+      "order_report_ns.p50_ns": 26368.0,
+      "order_report_ns.p90_ns": 135705.6,
+      "order_report_ns.p99_9_ns": 336391.68000002974,
+      "order_report_ns.p99_ns": 228116.47999999998,
+      "order_rows": 1000,
+      "order_time": 0,
+      "order_unmatched": 0,
+      "run_id": "run_001",
+      "skip_first": 100,
+      "summary_path": "analysis/spin_100000_confirm/run_001/summary_journal.json",
+      "total_tick_to_trade_ns.count": 900,
+      "total_tick_to_trade_ns.max_ns": 763392,
+      "total_tick_to_trade_ns.mean_ns": 166240.42666666667,
+      "total_tick_to_trade_ns.min_ns": 31232,
+      "total_tick_to_trade_ns.p50_ns": 125312.0,
+      "total_tick_to_trade_ns.p90_ns": 296217.6,
+      "total_tick_to_trade_ns.p99_9_ns": 703784.7040000075,
+      "total_tick_to_trade_ns.p99_ns": 447429.1199999998
+    },
+    {
+      "depth_price_side": 1000,
+      "depth_rows": 5000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "joined_rows": 900,
+      "joined_rows_raw": 1000,
+      "md_to_order_input_ns.count": 900,
+      "md_to_order_input_ns.max_ns": 802560,
+      "md_to_order_input_ns.mean_ns": 105454.36444444445,
+      "md_to_order_input_ns.min_ns": 13568,
+      "md_to_order_input_ns.p50_ns": 97280.0,
+      "md_to_order_input_ns.p90_ns": 133734.40000000002,
+      "md_to_order_input_ns.p99_9_ns": 607397.8880000245,
+      "md_to_order_input_ns.p99_ns": 349027.8399999999,
+      "order_input_rows": 1000,
+      "order_order_id": 1000,
+      "order_report_ns.count": 900,
+      "order_report_ns.max_ns": 302080,
+      "order_report_ns.mean_ns": 45985.28,
+      "order_report_ns.min_ns": 8960,
+      "order_report_ns.p50_ns": 22272.0,
+      "order_report_ns.p90_ns": 123161.6,
+      "order_report_ns.p99_9_ns": 270089.984000004,
+      "order_report_ns.p99_ns": 172925.43999999965,
+      "order_rows": 1000,
+      "order_time": 0,
+      "order_unmatched": 0,
+      "run_id": "run_002",
+      "skip_first": 100,
+      "summary_path": "analysis/spin_100000_confirm/run_002/summary_journal.json",
+      "total_tick_to_trade_ns.count": 900,
+      "total_tick_to_trade_ns.max_ns": 949248,
+      "total_tick_to_trade_ns.mean_ns": 151439.64444444445,
+      "total_tick_to_trade_ns.min_ns": 33792,
+      "total_tick_to_trade_ns.p50_ns": 121088.0,
+      "total_tick_to_trade_ns.p90_ns": 256000.0,
+      "total_tick_to_trade_ns.p99_9_ns": 716802.5600000292,
+      "total_tick_to_trade_ns.p99_ns": 438074.87999999995
+    },
+    {
+      "depth_price_side": 1000,
+      "depth_rows": 5000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "joined_rows": 900,
+      "joined_rows_raw": 1000,
+      "md_to_order_input_ns.count": 900,
+      "md_to_order_input_ns.max_ns": 813312,
+      "md_to_order_input_ns.mean_ns": 108809.6711111111,
+      "md_to_order_input_ns.min_ns": 12288,
+      "md_to_order_input_ns.p50_ns": 99072.0,
+      "md_to_order_input_ns.p90_ns": 147225.6,
+      "md_to_order_input_ns.p99_9_ns": 613316.8640000251,
+      "md_to_order_input_ns.p99_ns": 362255.36,
+      "order_input_rows": 1000,
+      "order_order_id": 1000,
+      "order_report_ns.count": 900,
+      "order_report_ns.max_ns": 1334528,
+      "order_report_ns.mean_ns": 57759.28888888889,
+      "order_report_ns.min_ns": 8192,
+      "order_report_ns.p50_ns": 22144.0,
+      "order_report_ns.p90_ns": 131353.6,
+      "order_report_ns.p99_9_ns": 1145809.9200000237,
+      "order_report_ns.p99_ns": 267896.3199999999,
+      "order_rows": 1000,
+      "order_time": 0,
+      "order_unmatched": 0,
+      "run_id": "run_003",
+      "skip_first": 100,
+      "summary_path": "analysis/spin_100000_confirm/run_003/summary_journal.json",
+      "total_tick_to_trade_ns.count": 900,
+      "total_tick_to_trade_ns.max_ns": 1449984,
+      "total_tick_to_trade_ns.mean_ns": 166568.96,
+      "total_tick_to_trade_ns.min_ns": 30208,
+      "total_tick_to_trade_ns.p50_ns": 121344.0,
+      "total_tick_to_trade_ns.p90_ns": 281369.6,
+      "total_tick_to_trade_ns.p99_9_ns": 1267940.0960000227,
+      "total_tick_to_trade_ns.p99_ns": 662031.3599999998
+    },
+    {
+      "depth_price_side": 1000,
+      "depth_rows": 5000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "joined_rows": 900,
+      "joined_rows_raw": 1000,
+      "md_to_order_input_ns.count": 900,
+      "md_to_order_input_ns.max_ns": 689664,
+      "md_to_order_input_ns.mean_ns": 104138.80888888889,
+      "md_to_order_input_ns.min_ns": 10752,
+      "md_to_order_input_ns.p50_ns": 99840.0,
+      "md_to_order_input_ns.p90_ns": 139648.00000000003,
+      "md_to_order_input_ns.p99_9_ns": 561473.7920000161,
+      "md_to_order_input_ns.p99_ns": 301759.9999999998,
+      "order_input_rows": 1000,
+      "order_order_id": 1000,
+      "order_report_ns.count": 900,
+      "order_report_ns.max_ns": 256000,
+      "order_report_ns.mean_ns": 48843.37777777778,
+      "order_report_ns.min_ns": 8960,
+      "order_report_ns.p50_ns": 21248.0,
+      "order_report_ns.p90_ns": 129024.0,
+      "order_report_ns.p99_9_ns": 250936.83200000064,
+      "order_report_ns.p99_ns": 175900.15999999997,
+      "order_rows": 1000,
+      "order_time": 0,
+      "order_unmatched": 0,
+      "run_id": "run_004",
+      "skip_first": 100,
+      "summary_path": "analysis/spin_100000_confirm/run_004/summary_journal.json",
+      "total_tick_to_trade_ns.count": 900,
+      "total_tick_to_trade_ns.max_ns": 765696,
+      "total_tick_to_trade_ns.mean_ns": 152982.18666666668,
+      "total_tick_to_trade_ns.min_ns": 35328,
+      "total_tick_to_trade_ns.p50_ns": 121216.0,
+      "total_tick_to_trade_ns.p90_ns": 257817.6,
+      "total_tick_to_trade_ns.p99_9_ns": 706779.1360000074,
+      "total_tick_to_trade_ns.p99_ns": 434787.8399999999
+    },
+    {
+      "depth_price_side": 1000,
+      "depth_rows": 5000,
+      "depth_time": 0,
+      "depth_unmatched": 0,
+      "joined_rows": 900,
+      "joined_rows_raw": 1000,
+      "md_to_order_input_ns.count": 900,
+      "md_to_order_input_ns.max_ns": 584960,
+      "md_to_order_input_ns.mean_ns": 106234.3111111111,
+      "md_to_order_input_ns.min_ns": 13568,
+      "md_to_order_input_ns.p50_ns": 102912.0,
+      "md_to_order_input_ns.p90_ns": 160537.6,
+      "md_to_order_input_ns.p99_9_ns": 551358.9760000042,
+      "md_to_order_input_ns.p99_ns": 328942.0799999998,
+      "order_input_rows": 1000,
+      "order_order_id": 1000,
+      "order_report_ns.count": 900,
+      "order_report_ns.max_ns": 405248,
+      "order_report_ns.mean_ns": 63971.84,
+      "order_report_ns.min_ns": 7936,
+      "order_report_ns.p50_ns": 39552.0,
+      "order_report_ns.p90_ns": 138009.6,
+      "order_report_ns.p99_9_ns": 250361.08800001943,
+      "order_report_ns.p99_ns": 187653.12,
+      "order_rows": 1000,
+      "order_time": 0,
+      "order_unmatched": 0,
+      "run_id": "run_005",
+      "skip_first": 100,
+      "summary_path": "analysis/spin_100000_confirm/run_005/summary_journal.json",
+      "total_tick_to_trade_ns.count": 900,
+      "total_tick_to_trade_ns.max_ns": 719872,
+      "total_tick_to_trade_ns.mean_ns": 170206.1511111111,
+      "total_tick_to_trade_ns.min_ns": 28160,
+      "total_tick_to_trade_ns.p50_ns": 135424.0,
+      "total_tick_to_trade_ns.p90_ns": 298624.0,
+      "total_tick_to_trade_ns.p99_9_ns": 709975.8080000012,
+      "total_tick_to_trade_ns.p99_ns": 447283.19999999995
+    }
+  ],
+  "summary": {
+    "best_run_by_total_p99": "run_004",
+    "metrics": {
+      "md_to_order_input_ns": {
+        "max_ns": {
+          "max": 813312.0,
+          "mean": 695500.8,
+          "min": 584960.0
+        },
+        "mean_ns": {
+          "max": 108809.6711111111,
+          "mean": 106339.72622222223,
+          "min": 104138.80888888889
+        },
+        "p50_ns": {
+          "max": 102912.0,
+          "mean": 99993.6,
+          "min": 97280.0
+        },
+        "p90_ns": {
+          "max": 160537.6,
+          "mean": 147624.96000000002,
+          "min": 133734.40000000002
+        },
+        "p99_9_ns": {
+          "max": 613316.8640000251,
+          "mean": 580889.0880000144,
+          "min": 551358.9760000042
+        },
+        "p99_ns": {
+          "max": 362255.36,
+          "mean": 335628.79999999993,
+          "min": 301759.9999999998
+        }
+      },
+      "order_report_ns": {
+        "max_ns": {
+          "max": 1334528.0,
+          "mean": 574259.2,
+          "min": 256000.0
+        },
+        "mean_ns": {
+          "max": 63971.84,
+          "mean": 55147.74755555556,
+          "min": 45985.28
+        },
+        "p50_ns": {
+          "max": 39552.0,
+          "mean": 26316.8,
+          "min": 21248.0
+        },
+        "p90_ns": {
+          "max": 138009.6,
+          "mean": 131450.88,
+          "min": 123161.6
+        },
+        "p99_9_ns": {
+          "max": 1145809.9200000237,
+          "mean": 450717.9008000155,
+          "min": 250361.08800001943
+        },
+        "p99_ns": {
+          "max": 267896.3199999999,
+          "mean": 206498.30399999992,
+          "min": 172925.43999999965
+        }
+      },
+      "total_tick_to_trade_ns": {
+        "max_ns": {
+          "max": 1449984.0,
+          "mean": 929638.4,
+          "min": 719872.0
+        },
+        "mean_ns": {
+          "max": 170206.1511111111,
+          "mean": 161487.47377777778,
+          "min": 151439.64444444445
+        },
+        "p50_ns": {
+          "max": 135424.0,
+          "mean": 124876.8,
+          "min": 121088.0
+        },
+        "p90_ns": {
+          "max": 298624.0,
+          "mean": 278005.76,
+          "min": 256000.0
+        },
+        "p99_9_ns": {
+          "max": 1267940.0960000227,
+          "mean": 821056.4608000136,
+          "min": 703784.7040000075
+        },
+        "p99_ns": {
+          "max": 662031.3599999998,
+          "mean": 485921.2799999999,
+          "min": 434787.8399999999
+        }
+      }
+    },
+    "run_count": 5,
+    "worst_run_by_total_p99": "run_003"
+  }
+}
