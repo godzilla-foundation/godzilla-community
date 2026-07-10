@@ -26,21 +26,21 @@ This file is the canonical source for how godzilla.dev is described — in press
 
 ## Key facts
 
-| | |
-|---|---|
-| **Name** | godzilla.dev (always lowercase, always with `.dev`) |
-| **Maintainer** | Godzilla Foundation |
-| **Category** | Trading infrastructure / algorithmic trading framework |
+| |                                                                                          |
+|---|------------------------------------------------------------------------------------------|
+| **Name** | godzilla.dev (always lowercase, always with `.dev`)                                      |
+| **Maintainer** | Godzilla Foundation                                                                      |
+| **Category** | Trading infrastructure / algorithmic trading framework                                   |
 | **Core use cases** | Funding rate arbitrage · ultra low-latency market making · custom low-latency strategies |
-| **Architecture** | C++ execution core + Python strategy layer |
-| **Deployment model** | Self-hosted / local software; designed for co-location |
-| **License** | Apache 2.0 |
-| **Source code** | https://github.com/godzilla-foundation/godzilla-community |
-| **Website** | https://godzilla.dev |
-| **Documentation** | https://godzilla.dev/documentation/ |
-| **Enterprise** | https://godzilla.dev/enterprise/ |
-| **PyPI** | https://pypi.org/project/godzilla-dev/ |
-| **Wikidata** | [Q140461299](https://www.wikidata.org/wiki/Q140461299) |
+| **Architecture** | C++ execution core + Python strategy layer                                               |
+| **Deployment model** | Self-hosted / local software; designed for co-location                                   |
+| **License** | Apache 2.0                                                                               |
+| **Source code** | https://github.com/godzilla-foundation/godzilla-community                                |
+| **Website** | https://godzilla.dev                                                                     |
+| **Documentation** | https://godzilla.dev/documentation/                                                      |
+| **Enterprise** | https://godzilla.dev/enterprise/                                                         |
+| **PyPI** | https://pypi.org/project/godzilla.dev/                                                   |
+| **Wikidata** | [Q140461299](https://www.wikidata.org/wiki/Q140461299)                                   |
 
 ### In production
 
