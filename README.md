@@ -59,6 +59,8 @@ Frameworks like Hummingbot are excellent for breadth of connectors and community
 
 All official Godzilla Foundation code lives in repositories under [this GitHub organization](https://github.com/godzilla-foundation). Please download godzilla.dev software only from these official sources.
 
+See [BRAND.md](./BRAND.md) for official descriptions and press assets
+
 ## License
 
 Apache 2.0 — free for personal, research, and commercial use, including forks and private modifications.
