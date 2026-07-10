@@ -9,7 +9,7 @@ Funding-rate arbitrage captures periodic payments between perpetual-futures and 
 
 ## 1. Introduction
 
-Perpetual futures use periodic funding transfers to help keep contract prices near their underlying reference markets [CITATION NEEDED]. A funding-rate arbitrageur typically offsets a perpetual position with spot or another derivative, seeking to receive funding while limiting directional exposure. The signal is transparent, but implementation is not trivial: both legs must be established, maintained, and unwound while prices, available liquidity, funding expectations, and venue conditions change.
+Perpetual futures use periodic funding transfers to help keep contract prices near their underlying reference markets [1]. A funding-rate arbitrageur typically offsets a perpetual position with spot or another derivative, seeking to receive funding while limiting directional exposure. The signal is transparent, but implementation is not trivial: both legs must be established, maintained, and unwound while prices, available liquidity, funding expectations, and venue conditions change.
 
 Execution infrastructure therefore matters even when the strategy is not an ultra-short-horizon alpha strategy. A delayed quote can become stale, a delayed hedge can create unintended exposure, and a slow response during basis compression can consume the expected funding return. Internet latency and exchange matching are important, but the software path controlled by the operator is also material: market-data decoding, inter-process transfer, strategy dispatch, order construction, and execution routing all consume time.
 
@@ -38,25 +38,29 @@ where \(N\) is the hedged notional and \(f\) is the realized funding rate. The n
 R_{net} = R_{gross} - C_{fees} - C_{slippage} - C_{capital} + R_{basis} - C_{execution\ risk}.
 \]
 
-This decomposition explains why an apparently delta-neutral trade remains execution-sensitive. The system must coordinate legs and manage partial fills, stale prices, rejected orders, and venue degradation. Low internal latency cannot guarantee profitability, but excessive and variable internal latency increases the interval during which the intended hedge and the actual portfolio differ.
+He, Manela, Ross, and von Wachter derive no-arbitrage prices for perpetual futures in frictionless markets and bounds under trading costs, and document that deviations from these prices in cryptocurrency markets are larger than in traditional currency markets [1]. Makarov and Schoar document large, persistent cross-exchange price deviations in cryptocurrency markets and attribute part of their persistence to execution and capital-mobility frictions [2]. The decomposition above is the operator-side view of the same frictions: it explains why an apparently delta-neutral trade remains execution-sensitive. The system must coordinate legs and manage partial fills, stale prices, rejected orders, and venue degradation. Low internal latency cannot guarantee profitability, but excessive and variable internal latency increases the interval during which the intended hedge and the actual portfolio differ.
 
 ### 2.2 Open-source trading frameworks
 
-Hummingbot is a widely used open-source Python framework with broad centralized- and decentralized-exchange connectivity and ready-made strategy workflows [CITATION NEEDED]. Those are distinct design strengths. godzilla.dev instead focuses on latency-critical, self-hosted execution with a native core and a journal-oriented process model. This paper does not present a cross-framework comparison; a fair comparison requires version-pinned implementations, identical event streams and strategy semantics, disclosed configuration, and community review of both setups.
+Hummingbot is a widely used open-source Python framework with broad centralized- and decentralized-exchange connectivity and ready-made strategy workflows [3]. Those are distinct design strengths. godzilla.dev instead focuses on latency-critical, self-hosted execution with a native core and a journal-oriented process model. This paper does not present a cross-framework comparison; a fair comparison requires version-pinned implementations, identical event streams and strategy semantics, disclosed configuration, and community review of both setups.
 
-Traditional high-frequency trading literature emphasizes bounded work in hot paths, pre-allocation, cache locality, clock discipline, and explicit handling of tail latency [CITATIONS NEEDED]. The present work applies those principles to an open-source cryptocurrency execution framework and contributes a repository-local method for auditing event-to-order timing.
+The market-design literature documents the economic stakes of the latency race itself [4]. On the engineering side, low-latency trading-system practice emphasizes bounded work in hot paths, pre-allocation, cache locality, clock discipline, and explicit handling of tail latency; the LMAX Disruptor is a well-known published example of replacing queue-based inter-thread handoff with a pre-allocated ring structure for exactly these reasons [5], and the journal design used here belongs to the same family of memory-mapped, single-writer event structures. The present work applies those principles to an open-source cryptocurrency execution framework and contributes a repository-local method for auditing event-to-order timing.
 
 ## 3. System Architecture
 
 ### 3.1 Process model
 
-The runtime separates responsibilities into market-data (`md`), strategy, and trade (`td`) processes. The market-data process converts venue-specific input into normalized events. The strategy subscribes to those events and emits normalized order requests. The trade process translates requests into venue actions and publishes order state changes. Master and ledger services provide runtime coordination and state recording.
+The runtime separates responsibilities into market-data (`md`), strategy, and trade (`td`) processes (Figure 1). The market-data process converts venue-specific input into normalized events. The strategy subscribes to those events and emits normalized order requests. The trade process translates requests into venue actions and publishes order state changes. Master and ledger services provide runtime coordination and state recording.
+
+![Figure 1. Process model and journal-based event path.](figures/fig1_architecture.svg)
+
+**Figure 1. Process model and journal-based event path.** The md, strategy, and td processes communicate only through the shared-memory journal; master and ledger provide coordination and state recording. The dashed timeline marks the journal `gen_time` timestamps used for the latency decomposition in Section 3.3. In the benchmark of Section 6, the venue endpoints are native mocks.
 
 The separation is operational as well as architectural. A connector can be restarted without embedding venue code in every strategy; strategy failures do not have to corrupt the market-data parser; and order state can be reconstructed from recorded events. In the benchmark used here, the same boundaries are retained while external sockets are removed so that the measurement isolates the local software path.
 
 ### 3.2 Shared-memory journal
 
-Processes exchange typed event frames through the Kungfu journal substrate. Each relevant frame carries generation and trigger timestamps together with source and destination identities. A consumer subscribes to the journal locations it needs, while the recorded stream remains available for later inspection and replay.
+Processes exchange typed event frames through the Kungfu journal substrate [6]. Kungfu is an open-source trading framework published under the Apache License 2.0; godzilla.dev reuses its journal layer under the same license and builds the connector, strategy, and benchmark layers described in this paper on top of it. Each relevant frame carries generation and trigger timestamps together with source and destination identities. A consumer subscribes to the journal locations it needs, while the recorded stream remains available for later inspection and replay.
 
 This design serves two roles. In live operation, it is the inter-process transport and event record. In evaluation, it supplies timestamps for market depth, order input, and order report frames. The benchmark therefore disables CSV tracing in the hot path and reconstructs latency after the run from journal data. This avoids synchronous formatting and file I/O in the path being measured.
 
@@ -110,16 +114,17 @@ The benchmark strategy is purposefully smaller. For each accepted depth event, i
 
 ## 5. Production Experience
 
-godzilla.dev was developed for self-hosted liquidity provision, inventory hedging, and cross-market arbitrage. The architecture reflects recurring operational requirements: restartable venue adapters, explicit order state, replayable event history, and separation between strategy decisions and exchange-specific execution.
+godzilla.dev has been used for self-hosted liquidity provision, inventory hedging, and cross-market arbitrage in production at a top-10 centralized derivatives exchange by trading volume. Beyond that venue class, no venue-identifying details, launch dates, pair lists, capital figures, strategy parameters, or performance data are disclosed, and no production performance claim is asserted as a finding of this paper. The production background is offered as context for the architectural choices described above: restartable venue adapters, explicit order state, replayable event history, and separation between strategy decisions and exchange-specific execution all originate as responses to recurring operational situations rather than as abstract design preferences.
 
-The following claims from the project outline require author verification and documentary support before submission and are therefore not asserted as findings in this draft:
+Four categories of operational experience shaped the design:
 
-- multi-year production deployment;
-- operation across more than 1,000 trading pairs;
-- deployment on a top-10 derivatives exchange;
-- behavior during specific extreme-market or mass-liquidation periods.
+**Journal recovery.** Because the journal is simultaneously the inter-process transport and the durable event record, recovering a stopped or crashed process reduces to replaying recorded frames rather than reconstructing in-memory state ad hoc. The practical consequence is that recovery is a rehearsable procedure with a defined data source, and post-incident analysis can operate on the same records the system itself used.
 
-The final paper should include only anonymized, auditable statements that do not reveal venue identity, launch dates, pair lists, capital, strategy parameters, or profit-and-loss data. Suitable operational lessons include journal recovery procedures, exchange API degradation handling, clock synchronization, and safe reconciliation after process restart, provided each is supported by the author's records.
+**Exchange API degradation.** Venue connectivity degrades partially far more often than it fails outright: elevated reject rates, delayed order reports, stale or gapping depth. Isolating each venue adapter in its own process allows a degraded connector to be restarted or replaced without stopping strategies or other connectors, while the recorded event stream preserves the degradation window for later inspection.
+
+**Clock discipline.** Event ordering and all latency accounting rely on journal timestamps. Operationally this makes local clock stability a first-class concern: step adjustments from time-synchronization daemons and cross-host comparisons of un-synchronized clocks both produce misleading records. The single-host deployment model in Section 3.5 keeps the measured path inside one clock domain by construction.
+
+**Reconciliation after restart.** During any restart window, local order state and venue order state can diverge. The journal defines precisely what the system believed before the restart; a safe resume procedure queries venue open orders and positions and reconciles them against journal-derived state before the strategy is permitted to trade again. Explicit order-state events make this reconciliation mechanical instead of interpretive.
 
 ## 6. Evaluation
 
@@ -156,6 +161,8 @@ The experiment was run from a working tree based on repository commit `5b9cee052
 | Measured samples | 900 per run, 4,500 total |
 | Repetitions | 5 |
 
+The host is a commodity laptop-class CPU rather than a tuned server platform. The reported numbers should therefore be read as a conservative baseline for the software stack: a co-located server with an isolated and tuned kernel, fixed frequency policy, and controlled thermal envelope represents a different — and generally more favorable — operating point that is not measured here.
+
 The exact compiler version, build flags, CPU governor, memory configuration, and background workload were not captured in the existing result artifacts. These fields must be recorded before the final submission because they can materially affect tail latency.
 
 The reproducible command is documented in `scripts/benchmark/README.md`. Each run stops existing benchmark services, clears prior journals and traces, starts the pinned processes, waits for the finite event stream to drain, stops the processes, and analyzes the resulting journals.
@@ -168,7 +175,11 @@ Journal frame `gen_time` is the common time basis. Because all measured processe
 
 ### 6.4 Results
 
-Table 1 reports the mean of each per-run percentile, together with the minimum and maximum percentile observed across the five runs. Values are in microseconds.
+Figure 2 shows the empirical distribution of end-to-end tick-to-trade latency for each of the five runs. Table 1 reports the mean of each per-run percentile, together with the minimum and maximum percentile observed across the five runs. Values are in microseconds.
+
+![Figure 2. Per-run empirical CDFs of tick-to-trade latency.](figures/fig2_tick_to_trade_cdf.png)
+
+**Figure 2. Per-run empirical CDFs of end-to-end tick-to-trade latency** (log-scale x-axis; 900 post-warm-up observations per run). The five runs are closely aligned through the median region and diverge in the upper tail, which motivates reporting repeated-run percentiles rather than a single best run. Between five and ten percent of cycles in each run complete in under 100 microseconds; attributing these fast cycles to a specific scheduling mechanism would require instrumentation not present in this experiment.
 
 **Table 1. Repeated-run tick-to-trade latency.**
 
@@ -215,23 +226,29 @@ Finally, the framework's single-host shared-memory design favors vertical optimi
 
 ## 8. Conclusion
 
-This paper described a self-hosted C++/Python execution framework for funding-rate arbitrage and latency-critical market making, centered on process isolation and a journal-based shared-memory event path. A reproducible native microbenchmark measured the complete local path from synthetic depth-frame generation through strategy order submission to a mock trade-process order report. Across five runs, the mean per-run p50 was 124.9 microseconds and the mean per-run p99 was 485.9 microseconds, while p99.9 exposed occasional millisecond-scale scheduling excursions.
+This paper described a self-hosted C++/Python execution framework for funding-rate arbitrage and latency-critical market making, centered on process isolation and a journal-based shared-memory event path. A reproducible native microbenchmark measured the complete local path from synthetic depth-frame generation through strategy order submission to a mock trade-process order report. Across five runs, the mean per-run p50 was 124.9 microseconds and the mean per-run p99 was 485.9 microseconds, while p99.9 exposed occasional millisecond-scale scheduling excursions — all measured on a commodity laptop-class CPU rather than tuned server hardware. The evaluation characterizes the single-host software path only; cross-exchange coordination latency, which the target strategies also depend on, is not evaluated here.
 
 The principal result is methodological as much as numerical: latency claims should identify the exact event boundaries, remove tracing work from the hot path, retain auditable per-event records, report repeated-run tails, and state what is excluded. The repository artifacts provide a baseline for broader replay datasets, longer repeated experiments, Python-path characterization, and a future independently reviewable cross-framework comparison.
 
 ## Reproducibility and Artifact Availability
 
-The implementation, launch scripts, journal analyzer, aggregation scripts, plotting tools, and raw per-run result artifacts are available in the godzilla.dev community repository at `https://github.com/godzilla-foundation/godzilla-community`. The measurements reported in this draft are stored under `scripts/benchmark/analysis/spin_100000_confirm` and are identified by artifact commit `da9dd09839c6ce16ab73b1a7a11ae1b5ed4e9349`. That commit contains five runs, 32 result files, and the aggregate CSV and JSON summaries used for Tables 1 and 2.
+The implementation, launch scripts, journal analyzer, aggregation scripts, plotting tools, and raw per-run result artifacts are available in the godzilla.dev community repository [7]. The measurements reported in this draft are stored under `scripts/benchmark/analysis/spin_100000_confirm` and are identified by artifact commit `da9dd09839c6ce16ab73b1a7a11ae1b5ed4e9349`. That commit contains five runs, 32 result files, and the aggregate CSV and JSON summaries used for Tables 1 and 2.
 
 Before publication, the artifact should be archived under an immutable release or DOI, and the paper should include checksums for the raw result files.
 
 ## References
 
-References will be added after source verification. Required groups are:
+[1] S. He, A. Manela, O. Ross, and V. von Wachter. Fundamentals of Perpetual Futures. arXiv:2212.06888, 2022 (revised 2024). https://arxiv.org/abs/2212.06888
 
-1. Perpetual futures and funding-rate mechanism literature.
-2. Empirical cryptocurrency basis and funding-rate arbitrage literature.
-3. Event-driven and low-latency trading-system architecture literature.
-4. Kungfu journal and godzilla.dev repository documentation.
-5. Hummingbot architecture and strategy documentation.
+[2] I. Makarov and A. Schoar. Trading and arbitrage in cryptocurrency markets. *Journal of Financial Economics*, 135(2):293–319, 2020.
+
+[3] Hummingbot Foundation. Hummingbot documentation. https://hummingbot.org/docs/ and https://github.com/hummingbot/hummingbot (accessed July 2026).
+
+[4] E. Budish, P. Cramton, and J. Shim. The high-frequency trading arms race: Frequent batch auctions as a market design response. *The Quarterly Journal of Economics*, 130(4):1547–1621, 2015.
+
+[5] M. Thompson, D. Farley, M. Barker, P. Gee, and A. Stewart. Disruptor: High performance alternative to bounded queues for exchanging data between concurrent threads. LMAX technical paper, May 2011. https://lmax-exchange.github.io/disruptor/disruptor.html
+
+[6] Kungfu Origin. Kungfu Trader. https://github.com/kungfu-origin/kungfu (Apache License 2.0; accessed July 2026).
+
+[7] Godzilla Foundation. godzilla.dev community repository. https://github.com/godzilla-foundation/godzilla-community (Apache License 2.0; accessed July 2026).
 

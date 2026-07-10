@@ -27,7 +27,7 @@ The codebase is free and publicly available under the **Apache 2.0** license. Ou
 
 ## Why godzilla.dev?
 
-- **C++ execution core.** Order placement, cancellation, and market data handling run in C++ for microsecond-level tick-to-trade latency — while strategies stay in Python for fast iteration.
+- **C++ execution core.** Order placement, cancellation, and market data handling run in C++ for microsecond-level tick-to-trade latency — while strategies stay in Python for fast iteration. In the reproducible journal-only benchmark ([WHITEPAPER.md](WHITEPAPER.md)), the native path shows a median tick-to-trade of ~125 μs measured on a commodity laptop-class CPU; co-located server hardware with tuned kernels represents a different operating point.
 - **Self-hosted and private.** godzilla.dev is local software, not a web platform. Your API keys, private keys, and strategy configuration never leave machines you control.
 - **Co-location ready.** Installed from source and managed with `pm2`, following the same workflow you use to deploy on a co-located AWS machine.
 - **Open source, community-driven.** Exchange connectors and strategy templates are maintained by the Godzilla Foundation together with a global community of algo traders.
