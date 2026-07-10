@@ -52,7 +52,7 @@ The market-design literature documents the economic stakes of the latency race i
 
 The runtime separates responsibilities into market-data (`md`), strategy, and trade (`td`) processes (Figure 1). The market-data process converts venue-specific input into normalized events. The strategy subscribes to those events and emits normalized order requests. The trade process translates requests into venue actions and publishes order state changes. Master and ledger services provide runtime coordination and state recording.
 
-![Figure 1. Process model and journal-based event path.](figures/fig1_architecture.svg)
+![Figure 1. Process model and journal-based event path.](scripts/benchmark/figures/fig1_architecture.svg)
 
 **Figure 1. Process model and journal-based event path.** The md, strategy, and td processes communicate only through the shared-memory journal; master and ledger provide coordination and state recording. The dashed timeline marks the journal `gen_time` timestamps used for the latency decomposition in Section 3.3. In the benchmark of Section 6, the venue endpoints are native mocks.
 
@@ -177,7 +177,7 @@ Journal frame `gen_time` is the common time basis. Because all measured processe
 
 Figure 2 shows the empirical distribution of end-to-end tick-to-trade latency for each of the five runs. Table 1 reports the mean of each per-run percentile, together with the minimum and maximum percentile observed across the five runs. Values are in microseconds.
 
-![Figure 2. Per-run empirical CDFs of tick-to-trade latency.](figures/fig2_tick_to_trade_cdf.png)
+![Figure 2. Per-run empirical CDFs of tick-to-trade latency.](scripts/benchmark/figures/fig2_tick_to_trade_cdf.png)
 
 **Figure 2. Per-run empirical CDFs of end-to-end tick-to-trade latency** (log-scale x-axis; 900 post-warm-up observations per run). The five runs are closely aligned through the median region and diverge in the upper tail, which motivates reporting repeated-run percentiles rather than a single best run. Between five and ten percent of cycles in each run complete in under 100 microseconds; attributing these fast cycles to a specific scheduling mechanism would require instrumentation not present in this experiment.
 

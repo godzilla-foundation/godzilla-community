@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500" viewBox="0 0 960 500" font-family="DejaVu Sans, system-ui, sans-serif">
+  <rect width="960" height="500" fill="#fcfcfb"/>
+
+  <!-- measurement timeline -->
+  <line x1="180" y1="52" x2="830" y2="52" stroke="#898781" stroke-width="1" stroke-dasharray="4 3"/>
+  <circle cx="180" cy="52" r="4" fill="#2a78d6"/>
+  <circle cx="530" cy="52" r="4" fill="#2a78d6"/>
+  <circle cx="830" cy="52" r="4" fill="#2a78d6"/>
+  <text x="180" y="34" text-anchor="middle" font-size="11" fill="#52514e">depth gen_time</text>
+  <text x="530" y="34" text-anchor="middle" font-size="11" fill="#52514e">order-input gen_time</text>
+  <text x="830" y="34" text-anchor="middle" font-size="11" fill="#52514e">order-report gen_time</text>
+  <text x="355" y="70" text-anchor="middle" font-size="11" fill="#52514e">T md → order input</text>
+  <text x="680" y="70" text-anchor="middle" font-size="11" fill="#52514e">T order report</text>
+
+  <!-- external endpoints (mocked in benchmark) -->
+  <line x1="20" y1="135" x2="76" y2="135" stroke="#898781" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrowgray)"/>
+  <text x="24" y="122" font-size="10" fill="#898781">venue feed</text>
+  <text x="24" y="160" font-size="10" fill="#898781">(mock, §6)</text>
+  <line x1="884" y1="135" x2="940" y2="135" stroke="#898781" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrowgray)"/>
+  <text x="888" y="122" font-size="10" fill="#898781">venue orders</text>
+  <text x="888" y="160" font-size="10" fill="#898781">(mock, §6)</text>
+
+  <!-- process boxes -->
+  <g>
+    <rect x="80" y="95" width="200" height="80" rx="6" fill="#ffffff" stroke="#c3c2b7" stroke-width="1.2"/>
+    <text x="180" y="126" text-anchor="middle" font-size="14" font-weight="600" fill="#0b0b0b">Market data (md)</text>
+    <text x="180" y="150" text-anchor="middle" font-size="11" fill="#52514e">venue feed → normalized depth</text>
+
+    <rect x="380" y="95" width="200" height="80" rx="6" fill="#ffffff" stroke="#c3c2b7" stroke-width="1.2"/>
+    <text x="480" y="126" text-anchor="middle" font-size="14" font-weight="600" fill="#0b0b0b">Strategy (C++/Python)</text>
+    <text x="480" y="150" text-anchor="middle" font-size="11" fill="#52514e">on_depth → insert_order</text>
+
+    <rect x="680" y="95" width="200" height="80" rx="6" fill="#ffffff" stroke="#c3c2b7" stroke-width="1.2"/>
+    <text x="780" y="126" text-anchor="middle" font-size="14" font-weight="600" fill="#0b0b0b">Trade (td)</text>
+    <text x="780" y="150" text-anchor="middle" font-size="11" fill="#52514e">order input → venue actions</text>
+  </g>
+
+  <!-- journal band -->
+  <rect x="60" y="270" width="840" height="64" rx="6" fill="#cde2fb" stroke="#2a78d6" stroke-width="1.2"/>
+  <text x="480" y="297" text-anchor="middle" font-size="14" font-weight="600" fill="#0b0b0b">Shared-memory journal (Kungfu substrate)</text>
+  <text x="480" y="319" text-anchor="middle" font-size="11" fill="#52514e">typed event frames · gen_time timestamps · replayable record</text>
+
+  <!-- journal read/write arrows -->
+  <g stroke="#2a78d6" stroke-width="2" fill="none">
+    <line x1="180" y1="175" x2="180" y2="264" marker-end="url(#arrowblue)"/>
+    <line x1="430" y1="270" x2="430" y2="181" marker-end="url(#arrowblue)"/>
+    <line x1="530" y1="175" x2="530" y2="264" marker-end="url(#arrowblue)"/>
+    <line x1="730" y1="270" x2="730" y2="181" marker-end="url(#arrowblue)"/>
+    <line x1="830" y1="175" x2="830" y2="264" marker-end="url(#arrowblue)"/>
+  </g>
+  <g font-size="11" fill="#52514e">
+    <text x="188" y="225">depth</text>
+    <text x="376" y="225" text-anchor="end">depth</text>
+    <text x="538" y="225">order input</text>
+    <text x="726" y="225" text-anchor="end">order input</text>
+    <text x="838" y="225">order report</text>
+  </g>
+
+  <!-- services below -->
+  <g>
+    <rect x="200" y="392" width="220" height="64" rx="6" fill="#ffffff" stroke="#c3c2b7" stroke-width="1.2"/>
+    <text x="310" y="418" text-anchor="middle" font-size="13" font-weight="600" fill="#0b0b0b">master</text>
+    <text x="310" y="440" text-anchor="middle" font-size="11" fill="#52514e">runtime coordination</text>
+    <line x1="310" y1="334" x2="310" y2="392" stroke="#c3c2b7" stroke-width="1.2"/>
+
+    <rect x="540" y="392" width="220" height="64" rx="6" fill="#ffffff" stroke="#c3c2b7" stroke-width="1.2"/>
+    <text x="650" y="418" text-anchor="middle" font-size="13" font-weight="600" fill="#0b0b0b">ledger</text>
+    <text x="650" y="440" text-anchor="middle" font-size="11" fill="#52514e">state recording</text>
+    <line x1="650" y1="334" x2="650" y2="392" stroke="#c3c2b7" stroke-width="1.2"/>
+  </g>
+
+  <defs>
+    <marker id="arrowblue" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L7,4 L0,8 z" fill="#2a78d6"/>
+    </marker>
+    <marker id="arrowgray" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L7,4 L0,8 z" fill="#898781"/>
+    </marker>
+  </defs>
+</svg>
