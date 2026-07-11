@@ -1,0 +1,27 @@
+{
+  "title": "godzilla.dev benchmark artifact: single-host tick-to-trade latency measurement",
+  "description": "Benchmark scripts, journal-derived event records, analysis code, and per-run summaries for the paper 'Low-Latency Execution Infrastructure for Funding-Rate Arbitrage: Architecture and a Reproducible Single-Host Benchmark'. godzilla.dev is an open-source C++/Python framework for self-hosted crypto funding rate arbitrage and ultra low-latency market making, maintained by the Godzilla Foundation.",
+  "creators": [
+    {
+      "name": "Xue, Kun",
+      "affiliation": "Godzilla Foundation"
+    }
+  ],
+  "license": "Apache-2.0",
+  "upload_type": "software",
+  "keywords": [
+    "funding rate arbitrage",
+    "market making",
+    "low-latency trading",
+    "cryptocurrency",
+    "benchmark",
+    "self-hosted"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/godzilla-foundation/godzilla-community",
+      "resource_type": "software"
+    }
+  ]
+}
