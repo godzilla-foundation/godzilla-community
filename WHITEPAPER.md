@@ -1,6 +1,6 @@
 # Low-Latency Execution Infrastructure for Cross-Exchange Funding Rate Arbitrage in Cryptocurrency Markets
 
-**Kun Xue**  
+**kx@godzilla.dev**  
 Godzilla Foundation  
 
 ## Abstract

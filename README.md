@@ -7,7 +7,7 @@
 
 **godzilla.dev is an open-source C++/Python infrastructure for self-hosted crypto funding rate arbitrage and market making, with ultra low-latency architecture and enterprise private deployment.**
 
-[Documentation](https://godzilla.dev/documentation/) · [Installation](https://godzilla.dev/documentation/installation/) · [FAQ](https://godzilla.dev/documentation/faq/) · [Enterprise](https://godzilla.dev/enterprise/)
+[Documentation](https://godzilla.dev/documentation/) · [Whitepaper](./WHITEPAPER.md) · [Installation](https://godzilla.dev/documentation/installation/) · [FAQ](https://godzilla.dev/documentation/faq/) · [Enterprise](https://godzilla.dev/enterprise/)
 
 </div>
 
@@ -85,4 +85,4 @@ godzilla.dev 不是零售型交易机器人，而是生产级的交易基础设�
 
 企业级私有化部署（面向资金费率套利团队与机构）请见 [godzilla.dev Enterprise](https://godzilla.dev/enterprise/)。
 
-[阅读完整文档](https://godzilla.dev/documentation/)
+[阅读完整文档](https://godzilla.dev/documentation/) · [Whitepaper](./WHITEPAPER.md)
