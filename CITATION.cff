@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use godzilla.dev in your research, please cite it as below."
+title: "godzilla.dev: open-source C++/Python framework for self-hosted crypto funding rate arbitrage and low-latency market making"
+authors:
+  - family-names: "Xue"
+    given-names: "Kun"
+    affiliation: "Godzilla Foundation"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/godzilla-foundation/godzilla-community"
+url: "https://godzilla.dev"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21307412
+    description: "Benchmark artifact archive (all versions)"
+preferred-citation:
+  type: article
+  title: "Low-Latency Execution Infrastructure for Funding-Rate Arbitrage: Architecture and a Reproducible Single-Host Benchmark"
+  authors:
+    - family-names: "Xue"
+      given-names: "Kun"
+      affiliation: "Godzilla Foundation"
+  year: 2026
