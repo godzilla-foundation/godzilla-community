@@ -86,3 +86,11 @@ godzilla.dev 不是零售型交易机器人，而是生产级的交易基础设�
 企业级私有化部署（面向资金费率套利团队与机构）请见 [godzilla.dev Enterprise](https://godzilla.dev/enterprise/)。
 
 [阅读完整文档](https://godzilla.dev/documentation/) · [Whitepaper](./WHITEPAPER.md)
+
+## Citation
+
+If you use godzilla.dev or the benchmark artifact in your research, please cite:
+
+Kun Xue. *Low-Latency Execution Infrastructure for Funding-Rate Arbitrage:
+Architecture and a Reproducible Single-Host Benchmark.* 2026.
+Benchmark artifact: https://doi.org/10.5281/zenodo.21307411
