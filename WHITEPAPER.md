@@ -3,6 +3,8 @@
 **kx@godzilla.dev**  
 Godzilla Foundation  
 
+> **Preprint.** This working paper is posted on SSRN: <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7103839> (SSRN Abstract ID 7103839).
+
 ## Abstract
 
 Funding-rate arbitrage captures periodic payments between perpetual-futures and offsetting spot or derivatives positions. Although the economic signal is conceptually simple, execution quality depends on how quickly a system can observe market-data changes, make a decision, and submit a hedge or quote before the basis moves. This paper presents godzilla.dev, an open-source, self-hosted C++/Python framework for funding-rate arbitrage, market making, and other latency-sensitive cryptocurrency strategies. The framework separates market data, strategy, and trade execution into independently managed processes connected by a shared-memory event journal. We describe this process model, the event-sourced data path, the C++/Python boundary, and a deterministic local benchmark for measuring software-stack tick-to-trade latency without network or exchange-engine noise. On a 13th-generation Intel Core i7-1360P, five native C++ benchmark runs produced a mean-of-run p50 of 124.9 microseconds, p90 of 278.0 microseconds, p99 of 485.9 microseconds, and p99.9 of 821.1 microseconds over 4,500 measured order cycles. These results characterize one controlled local configuration; they do not measure exchange latency, fill quality, profitability, or production reliability. The benchmark scripts, journal-derived event records, and analysis tools are included in the project repository to support independent reproduction.
