@@ -17,6 +17,8 @@
   <img src="./scripts/benchmark/figures/fig2_tick_to_trade_cdf.png" alt="Tick-to-trade latency benchmark CDF" width="860" />
 </p>
 
+<p align="center"><strong>Median tick-to-trade latency is ~125 μs.</strong></p>
+
 <p align="center"><em>Tick-to-trade latency benchmark from the reproducible single-host artifact.</em></p>
 
 ## What is godzilla.dev?
