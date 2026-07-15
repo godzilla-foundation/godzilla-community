@@ -1,0 +1,11 @@
+Title: Low-Latency Execution Infrastructure for Funding-Rate Arbitrage: Architecture and a Reproducible Single-Host Benchmark
+Authors: Kun Xue
+Primary category: q-fin.TR (Trading and Market Microstructure)
+Suggested cross-list: cs.PF (Performance)
+Comments: 10 pages, 2 figures, 4 tables. Source code and benchmark artifacts are publicly available.
+License: Select during arXiv submission; no license choice has been made in this package.
+
+Abstract:
+Funding-rate arbitrage combines a perpetual-futures position with an offsetting spot or derivatives position to receive funding while limiting directional exposure. Although the economic signal is relatively transparent, implementation remains sensitive to stale market data, delayed order submission, incomplete hedges, and venue-specific failures. This paper presents godzilla.dev, an open-source, self-hosted C++/Python execution framework for funding-rate arbitrage, market making, and other latency-sensitive cryptocurrency strategies. The framework separates market-data, strategy, and trade-execution responsibilities into independently managed processes connected through a journal-based shared-memory event path. We describe the process model, persistent event records, the native C++ and Python strategy boundary, and the operational rationale for process isolation and replayable state.
+
+We evaluate a narrowly defined local software path using native mock market-data and trade components on a single host. The benchmark measures the interval from generation of a synthetic top-of-book journal frame to generation of a corresponding local order-report frame. It excludes network transport, exchange protocol handling, matching-engine processing, fills, queue position, and strategy profitability. On an Intel Core i7-1360P host, five runs retained 900 post-warm-up order cycles each. Run-level median latency ranged from 121.1 to 135.4 microseconds, while run-level p99 latency ranged from 434.8 to 662.0 microseconds. These measurements characterize only the specified single-host, low-utilization configuration and do not establish a production latency bound or a comparison with another trading framework. The benchmark scripts, journal-derived event records, analysis code, and per-run summaries are published with the source repository.

@@ -13,6 +13,12 @@
 
 ---
 
+<p align="center">
+  <img src="./scripts/benchmark/figures/fig2_tick_to_trade_cdf.png" alt="Tick-to-trade latency benchmark CDF" width="860" />
+</p>
+
+<p align="center"><em>Tick-to-trade latency benchmark from the reproducible single-host artifact.</em></p>
+
 ## What is godzilla.dev?
 
 godzilla.dev is **not a retail trading bot** — it is production-grade trading infrastructure. It combines an ultra low-latency **C++ execution core** with a flexible **Python strategy layer**, and is designed to run **co-located** next to exchange matching engines (e.g. AWS availability zones used by major exchanges).
