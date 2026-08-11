@@ -39,10 +39,13 @@ API_HOSTS = (
     "https://www.binance.info",
 )
 
+# 这个名字容易误导：catalog/list/query 实际上要求 catalogId，返回的是该
+# 分区的文章列表；不带 catalogId 的分区发现应使用 article/list/query。
 CATALOG_PATH = "/bapi/composite/v1/public/cms/article/catalog/list/query"
 ARTICLE_PATHS = (
     "/bapi/composite/v1/public/cms/article/list/query",
     "/bapi/apex/v1/public/apex/cms/article/list/query",
+    CATALOG_PATH,
 )
 ARTICLE_URL = "https://www.binance.com/{lang}/support/announcement/{code}"
 
@@ -206,10 +209,18 @@ class BinanceAnnouncements:
 
     def catalogs(self) -> dict[int, str]:
         """列出全部公告分区，失败时退回硬编码列表。"""
-        try:
-            data = self._get(CATALOG_PATH, {"type": 1, "pageNo": 1, "pageSize": 50})
-        except Exception as exc:  # noqa: BLE001
-            LOG.warning("获取分区列表失败（%s），改用内置列表", exc)
+        data: dict[str, Any] = {}
+        last_err: Exception | None = None
+        params = {"type": 1, "pageNo": 1, "pageSize": 50}
+        for path in ARTICLE_PATHS:
+            try:
+                data = self._get(path, params)
+                break
+            except Exception as exc:  # noqa: BLE001 - 多套路径互为备份
+                last_err = exc
+                LOG.debug("分区发现路径 %s 失败: %s", path, exc)
+        else:
+            LOG.warning("获取分区列表失败（%s），改用内置列表", last_err)
             return dict(FALLBACK_CATALOGS)
 
         found: dict[int, str] = {}
@@ -241,13 +252,19 @@ class BinanceAnnouncements:
                 try:
                     data = self._get(path, params)
                     break
-                except Exception as exc:  # noqa: BLE001 - 两套路径互为备份
+                except Exception as exc:  # noqa: BLE001 - 多套路径互为备份
                     LOG.debug("路径 %s 失败: %s", path, exc)
             else:
                 LOG.warning("分区 %s 第 %s 页抓取失败，跳过", catalog_id, page)
                 break
 
-            batch = data.get("articles") or []
+            # Binance 的两个接口版本返回结构并不一致：有的是
+            # data.articles，有的是 data.catalogs[*].articles。
+            batch = list(data.get("articles") or [])
+            if not batch:
+                for catalog in data.get("catalogs") or []:
+                    if catalog.get("catalogId") in (None, catalog_id):
+                        batch.extend(catalog.get("articles") or [])
             out.extend(batch)
             if len(batch) < page_size:
                 break
@@ -451,7 +468,9 @@ def selftest(args: argparse.Namespace) -> int:
 
     ok = False
     for host in API_HOSTS:
-        url = f"{host}{CATALOG_PATH}"
+        # article/list/query 不带 catalogId 时返回分区及各分区文章，适合同时
+        # 验证连通性和响应结构；catalog/list/query 缺 catalogId 会返回 400。
+        url = f"{host}{ARTICLE_PATHS[0]}"
         try:
             resp = requests.get(
                 url,
@@ -463,7 +482,8 @@ def selftest(args: argparse.Namespace) -> int:
             body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
             catalogs = ((body.get("data") or {}).get("catalogs") or [])
             print(f"  ✅ {host}  HTTP {resp.status_code}  分区数 {len(catalogs)}")
-            ok = ok or resp.status_code == 200
+            structure_ok = bool(catalogs)
+            ok = ok or (resp.status_code == 200 and structure_ok)
         except Exception as exc:  # noqa: BLE001
             print(f"  ❌ {host}  {type(exc).__name__}: {exc}")
 
