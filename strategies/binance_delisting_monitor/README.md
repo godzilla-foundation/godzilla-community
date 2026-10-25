@@ -46,6 +46,15 @@ python3 binance_delisting_monitor.py --webhook https://open.feishu.cn/open-apis/
 export BINANCE_WEBHOOK_URL=...   # 也可以用环境变量
 ```
 
+Lark/飞书推送会同时检查 HTTP 状态和回执中的业务码。推送前将完整公告写入
+`state/seen.json` 的 `pending` 队列，失败时返回非零退出码，下次运行自动重试；
+即使公告已不在列表页，也可补发。成功后才清空待推送队列。
+历史 `seen` 记录不代表消息送达，不会自动重发旧记录。
+如果请求超时但服务端实际已收到，重试可能产生重复消息。
+
+运行日志默认写入 `state/monitor.log`（单文件最多 5 MB，保留 3 份备份），
+也可用 `--log-file` 指定，避免 cron 丢弃输出后无法排查。
+
 ## 定时运行
 
 cron（推荐，每天 09:00）：

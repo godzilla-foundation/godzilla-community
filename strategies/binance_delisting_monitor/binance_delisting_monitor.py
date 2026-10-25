@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 import re
 import sys
@@ -399,6 +400,16 @@ def push_webhook(url: str, text: str, timeout: float = 15.0) -> None:
 
     resp = requests.post(url, json=payload, timeout=timeout)
     resp.raise_for_status()
+    if "open.feishu.cn" in url or "larksuite.com" in url:
+        body = resp.json()
+        if not isinstance(body, dict):
+            raise RuntimeError("Lark/飞书返回了无效回执")
+        codes = [body[key] for key in ("code", "StatusCode") if key in body]
+        if not codes or any(code != 0 for code in codes):
+            raise RuntimeError(
+                f"Lark/飞书拒收消息: code={codes}, "
+                f"msg={body.get('msg') or body.get('StatusMessage') or '未知错误'}"
+            )
     LOG.info("已推送到 webhook (%s)", resp.status_code)
 
 
@@ -424,6 +435,11 @@ def run_once(args: argparse.Namespace) -> int:
     seen: dict[str, Any] = state["seen"]
 
     new = hits if args.all else [a for a in hits if a.code not in seen]
+    webhook = args.webhook or os.environ.get("BINANCE_WEBHOOK_URL")
+    pending: dict[str, Any] = state.setdefault("pending", {})
+    if webhook:
+        for a in new:
+            pending[a.code] = a.to_dict()
 
     now = datetime.now(timezone.utc).isoformat()
     for a in hits:
@@ -432,7 +448,7 @@ def run_once(args: argparse.Namespace) -> int:
         state["last_run"] = now
         save_state(state_path, state)
 
-    if not new:
+    if not new and not (webhook and pending):
         if args.json:
             print(json.dumps([], ensure_ascii=False))
         else:
@@ -441,7 +457,7 @@ def run_once(args: argparse.Namespace) -> int:
 
     if args.json:
         print(json.dumps([a.to_dict() for a in new], ensure_ascii=False, indent=2))
-    else:
+    elif new:
         print(format_text(new))
 
     if args.out:
@@ -451,12 +467,20 @@ def run_once(args: argparse.Namespace) -> int:
             for a in new:
                 fh.write(json.dumps(a.to_dict(), ensure_ascii=False) + "\n")
 
-    webhook = args.webhook or os.environ.get("BINANCE_WEBHOOK_URL")
     if webhook and not args.dry_run:
+        # 保存完整公告；即使下次已不在列表页，也能补发。
+        notifications = [
+            Announcement(**{key: item[key] for key in Announcement.__dataclass_fields__})
+            for item in pending.values()
+        ]
         try:
-            push_webhook(webhook, format_text(new))
+            push_webhook(webhook, format_text(notifications))
         except Exception as exc:  # noqa: BLE001 - 推送失败不应让抓取结果丢失
-            LOG.error("webhook 推送失败: %s", exc)
+            LOG.error("webhook 推送失败，保留 %s 条待下次重试: %s", len(pending), exc)
+            return 1
+        pending.clear()
+        state["last_push"] = datetime.now(timezone.utc).isoformat()
+        save_state(state_path, state)
 
     return 0
 
@@ -522,17 +546,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true", help="不写状态、不推送")
     p.add_argument("--json", action="store_true", help="JSON 输出")
     p.add_argument("--selftest", action="store_true", help="只检查接口连通性")
+    p.add_argument("--log-file", default=str(default_state.parent / "monitor.log"),
+                   help="运行日志路径（默认 state/monitor.log）")
     p.add_argument("-v", "--verbose", action="store_true")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    log_path = Path(args.log_file).expanduser()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        stream=sys.stderr,
+        handlers=[logging.StreamHandler(sys.stderr),
+                  RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024,
+                                      backupCount=3, encoding="utf-8")],
     )
 
     if args.selftest:
